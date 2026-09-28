@@ -1,0 +1,16 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+import {admin,config,playerId} from './fixtures';
+const mocks=vi.hoisted(()=>({guard:vi.fn(),save:vi.fn()}));
+vi.mock('@/lib/permissions/guards',()=>({requireAdmin:mocks.guard}));
+vi.mock('@/lib/server/env',async original=>({...await original<object>(),serverEnv:()=>config}));
+vi.mock('@/lib/api/client',()=>({SuburbioApiClient:class{saveCoupon=mocks.save;}}));
+import {POST} from '@/app/api/admin/coupons/route';
+const coupon={code:'VIP15',discountType:'percentage',discountValue:15,minimumAmountMinor:0,startsAt:null,expiresAt:null,maxUses:null,maxUsesPerUser:null,scope:'ALL',productIds:[],categoryIds:[],firstPurchaseOnly:false,status:'active'};
+const request=(extra:object={},origin=config.AUTH_URL!)=>new Request('http://localhost/api/admin/coupons',{method:'POST',headers:{origin,'content-type':'application/json','x-suburbio-intent':'coupon.save'},body:JSON.stringify({coupon,idempotencyKey:'coupon-test-key',...extra})});
+beforeEach(()=>{vi.clearAllMocks();mocks.guard.mockResolvedValue({...admin,fullAccess:true});mocks.save.mockResolvedValue({data:{coupon}});});
+it('cupom recusa origem externa',async()=>{expect((await POST(request({},'https://evil.example'))).status).toBe(403);expect(mocks.save).not.toHaveBeenCalled();});
+it('cupom recusa ator fornecido pelo browser',async()=>{expect((await POST(request({actorDiscordId:admin.discordId}))).status).toBe(400);expect(mocks.save).not.toHaveBeenCalled();});
+it('STANDARD com capability forjada não altera cupom',async()=>{mocks.guard.mockResolvedValue({...admin,capabilities:['COUPONS_CREATE'],fullAccess:false});expect((await POST(request())).status).toBe(403);expect(mocks.save).not.toHaveBeenCalled();});
+it('owner usa identidade da sessão na criação',async()=>{expect((await POST(request())).status).toBe(200);expect(mocks.guard).toHaveBeenCalledWith('COUPONS_CREATE');expect(mocks.save).toHaveBeenCalledWith(admin.discordId,coupon,'coupon-test-key',undefined,undefined);});
+it('edição seleciona capability correta',async()=>{expect((await POST(request({id:playerId,expectedRevision:1}))).status).toBe(200);expect(mocks.guard).toHaveBeenCalledWith('COUPONS_UPDATE');});
+it('somente leitura bloqueia inclusive owner',async()=>{mocks.guard.mockResolvedValue({...admin,fullAccess:true,readOnly:true});expect((await POST(request())).status).toBe(503);expect(mocks.save).not.toHaveBeenCalled();});
