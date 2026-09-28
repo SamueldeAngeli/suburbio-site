@@ -198,3 +198,9 @@ Crypto/custom quote, carrinho, cupons/métricas/snapshots e criação/leitura/ca
 
 ## Atualização de validade
 Entitlements próprios/admin, preparo e confirmação de benefícios pelo bridge, reconciliação, revogação e job de expiração implementados. Rotas e limites em ENTITLEMENTS.md. Não confundem implementação de entitlement com checkout ou crédito de Crypto, que permanecem pendentes.
+
+## Estado atual v0.5 — 28/09/2026 (substitui pendências comerciais anteriores)
+
+Checkout durável, webhook autenticado/reconciliação, reserva/expiração, preparo automático, Crypto/benefícios, ACK/defer, notificações e leitura de etapas implementados na API. BFF create/checkout e Minha Conta integrados. Reporte e contratos em CONTINUATION_REPORT.md, COMMERCE_ARCHITECTURE.md e FULFILLMENT.md.
+
+Continuam reais: homologação Mercado Pago/HTTPS, aplicação e ledger do bridge, envio/ledger do bot, operação de REVIEW, reembolso/compensação e implantação. Sem polling financeiro periódico; monitorar retries do webhook. Painéis administrativos financeiros continuam lacunas. READY_FOR_BRIDGE não significa benefício aplicado.

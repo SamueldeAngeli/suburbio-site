@@ -47,3 +47,6 @@ Políticas preparadas: VIP `REMOVE_VIP_AND_SYNC_DISCORD`; VEHICLE `REMOVE_TEMPOR
 Regressão: **136 site + 36 HTTP + 85 unitários API + 127 integrações API = 384 aprovados** (124 integrações em suíte completa e os 17 do módulo reexecutados após adicionar três cenários). Typecheck/lint/build e fronteira client/server aprovados. Visual público verificado; telas autenticadas dependem da configuração OAuth/API para homologação real.
 
 Nenhuma variável nova: job reutiliza WORKER_INTERVAL_MS/API_READ_ONLY. Aplicar 008 no PostgreSQL institucional de staging após backup e atualizar API/site juntos: novo contrato exige validityMode e remove days do payload VIP. Nenhuma migration real, cobrança, concessão ou revogação in-game realizada. Checkout Mercado Pago, crédito Crypto e entrega completa/notificação final do pedido ainda seguem pendentes do projeto maior.
+
+## Ciclo v0.5
+Pagamento reconciliado prepara benefícios automaticamente. Pedido mostra pagamento, entrega e notificação separadamente; validade continua iniciando só no ACK real do bridge. Crypto por snapshot/linha, sem entitlement temporal. Pendências e evidências atualizadas em CONTINUATION_REPORT.md e FULFILLMENT.md.

@@ -82,3 +82,7 @@ Discord `403707367885242378`: usuário pediu acesso ao painel. Alteração de bo
 3. Configurar env e iniciar API/dependências pelo processo operacional do projeto da API.
 4. Homologar Discord OAuth, owner/capabilities e health/allowlist com contas/ambiente autorizados.
 5. Entregar endpoints de listagens/comércio conforme API_GAPS; ativar um adapter por contrato real.
+
+## Ciclo comercial — 28/09/2026
+
+Baseline c73d94c preservou trabalho/testes anteriores. BFF autenticado create/checkout, carrinho ligado ao pedido, domínio de redirecionamento restrito e Minha Conta com estados/registros reais. Preço/identidade do browser recusados. Site: 146 testes + 38 HTTP aprovados; typecheck/lint/build e verify:client aprovados. API: 85 + 153; total 422. Nenhum teste removido. Mercado Pago testado com transporte controlado; sem credenciais/DM/cobrança/entrega real. Dependências externas e compatibilidade em docs/CONTINUATION_REPORT.md. READY_FOR_BRIDGE depende de efeito e ACK reais.

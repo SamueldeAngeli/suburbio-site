@@ -47,3 +47,7 @@ Contratos consultados em `D:/api suburbio/docs/HTTP_CONTRACTS.md` (v0.2), `src/s
 4. Discord solicitado: `403707367885242378`. A revisão automática bloqueou habilitar `BOOTSTRAP_OWNER_ENABLED=true` por conceder privilégios completos; aguardando autorização explícita para SYSTEM_OWNER. Arquivo `.env` da API permaneceu intacto.
 
 Preparação para Windows Server 2025; nenhuma publicação externa nesta etapa.
+
+## Ciclo comercial — 28/09/2026
+
+Baseline c73d94c preservou trabalho/testes anteriores. BFF autenticado create/checkout, carrinho ligado ao pedido, domínio de redirecionamento restrito e Minha Conta com estados/registros reais. Preço/identidade do browser recusados. Site: 146 testes + 38 HTTP aprovados; typecheck/lint/build e verify:client aprovados. API: 85 + 153; total 422. Nenhum teste removido. Mercado Pago testado com transporte controlado; sem credenciais/DM/cobrança/entrega real. Dependências externas e compatibilidade em docs/CONTINUATION_REPORT.md. READY_FOR_BRIDGE depende de efeito e ACK reais.

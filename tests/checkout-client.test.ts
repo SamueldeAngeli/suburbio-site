@@ -1,0 +1,9 @@
+import {it,expect,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {createElement} from 'react';
+import {SuburbioApiClient} from '@/lib/api/client';
+import {PurchaseStages} from '@/components/purchase-stages';
+import {config,discordId,playerId,operationId} from './fixtures';
+it('cliente recusa redirecionamento para domínio não autorizado',async()=>{const transport=vi.fn<typeof fetch>().mockResolvedValue(Response.json({checkoutUrl:'https://evil.example/pay',operationId}));await expect(new SuburbioApiClient(config,transport).checkout(discordId,playerId,operationId)).rejects.toMatchObject({code:'API_INVALID_RESPONSE'});});
+it('checkout envia somente identidade e chave, com HMAC',async()=>{const transport=vi.fn<typeof fetch>().mockResolvedValue(Response.json({checkoutUrl:'https://sandbox.mercadopago.com.br/pay',operationId}));await new SuburbioApiClient(config,transport).checkout(discordId,playerId,operationId);const [,init]=transport.mock.calls[0];expect(JSON.parse(String(init?.body))).toEqual({customerDiscordId:discordId});expect(new Headers(init?.headers).get('idempotency-key')).toBe(operationId);expect(new Headers(init?.headers).get('x-signature')).toHaveLength(64);});
+it('etapas não confundem pagamento aprovado com entrega pendente',()=>{const html=renderToStaticMarkup(createElement(PurchaseStages,{order:{id:playerId,status:'confirmed',paymentStatus:'approved',deliveryStatus:'pending',reservationStatus:'consumed',grossAmountMinor:'100',discountAmountMinor:'0',netAmountMinor:'100',currency:'BRL',createdAt:'2026-09-28T00:00:00Z',expiresAt:null,items:[],payments:[],deliveries:[],notifications:[]}}));expect(html).toContain('Aprovado');expect(html).toContain('Aguardando confirmação de entrega');expect(html).not.toContain('Compra entregue');});

@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
 const messages: Record<string, string> = {
+  PAYMENT_DISABLED: 'Pagamento temporariamente indisponível.',
+  PAYMENT_PROVIDER_UNAVAILABLE: 'O provedor não respondeu. Seu pedido foi preservado; tente consultar novamente.',
+  CHECKOUT_RECONCILIATION_REQUIRED: 'Pagamento em preparação. Aguarde alguns instantes e tente novamente.',
+  ORDER_NOT_PAYABLE: 'Este pedido não está disponível para pagamento. Consulte o status atualizado.',
   ORDER_NOT_FOUND: 'Pedido não encontrado para esta conta.',
   ORDER_CANNOT_CANCEL: 'Este pedido requer análise do pagamento antes de ser cancelado.',
   PLAYER_LINK_REQUIRED: 'Vincule seu Discord à cidade antes de criar um pedido.',

@@ -5,3 +5,12 @@ out/
 .env*
 !.env.example
 .sites-runtime/
+
+logs/
+*.log
+secrets/
+backups/
+*.bak
+*.dump
+*.pem
+*.key
