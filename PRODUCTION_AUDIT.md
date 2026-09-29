@@ -86,3 +86,9 @@ Discord `403707367885242378`: usuário pediu acesso ao painel. Alteração de bo
 ## Ciclo comercial — 28/09/2026
 
 Baseline c73d94c preservou trabalho/testes anteriores. BFF autenticado create/checkout, carrinho ligado ao pedido, domínio de redirecionamento restrito e Minha Conta com estados/registros reais. Preço/identidade do browser recusados. Site: 146 testes + 38 HTTP aprovados; typecheck/lint/build e verify:client aprovados. API: 85 + 153; total 422. Nenhum teste removido. Mercado Pago testado com transporte controlado; sem credenciais/DM/cobrança/entrega real. Dependências externas e compatibilidade em docs/CONTINUATION_REPORT.md. READY_FOR_BRIDGE depende de efeito e ACK reais.
+
+## Compatibilidade Crypto INGAME — 29/09/2026
+
+Histórico de pedidos formata CRYPTO em inteiros (BigInt), mantendo BRL em centavos. Schemas aceitam storefronts do catálogo e origin INGAME dos benefícios. Alterações limitadas à compatibilidade com a API v0.6; homepage, checkout/Mercado Pago e bot/bridge não alterados.
+
+Validação: 150 testes unitários/componentes/servidor (4 novos), 38 HTTP, typecheck, lint, build e verify:client aprovados. Build inicial encontrou inferência de data no formatter; corrigida e revalidada. Nenhuma publicação, OAuth real ou efeito FiveM. A alteração preexistente .openai/hosting.json foi preservada fora deste trabalho. Contrato: D:/api suburbio/docs/CRYPTO_INGAME.md.
