@@ -168,7 +168,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 | `API_ENABLED` | `true` |
 | `API_BASE_URL` | `http://127.0.0.1:3000` (HTTP só é aceito em loopback) |
 | `API_SERVICE_ID` / `API_SERVICE_SECRET` | `discord-bot` / **igual** a `DISCORD_BOT_SERVICE_SECRET` da API |
-| `TICKET_STORAGE_MODE` / `SCHEDULER_STORAGE_MODE` | `local` / `local` (a API ainda não tem esses contratos) |
+| `TICKET_STORAGE_MODE` / `SCHEDULER_STORAGE_MODE` | `local` / `local` até migrar; depois `api` / `api` (seção 14, "Tickets e scheduler: SQLite → API") |
 | `ROLE_AUTOMATION_SAFE_MODE` | `true` no primeiro start; `false` só depois de homologar allowlist/cargos |
 | `HEALTH_PORT` | `3101` (o healthcheck depende disso) |
 | `SITE_URL`, `FIVEM_CONNECT_URL`, `SUPPORT_CHANNEL_URL` | links do painel (HTTPS ou `fivem://connect/...`) |
@@ -352,8 +352,8 @@ Instale o **PostgreSQL 18** (instalador oficial para Windows, como serviço). Em
 
 ### Migrations
 
-- Existentes: `001_foundation` a `013_gifts`, em `suburbio-api\src\database\migrations`. São forward-only: as de afiliados recusam `down`.
-- Pendentes: num banco novo, todas as 13. Num banco já existente, confira. As `012_affiliates` e `013_gifts` só foram validadas em bancos de teste isolados.
+- Existentes: `001_foundation` a `014_discord_storage`, em `suburbio-api\src\database\migrations`. São forward-only: as de afiliados e a `014` recusam `down`.
+- Pendentes: num banco novo, todas as 14. Num banco já existente, confira. As `012_affiliates`, `013_gifts` e `014_discord_storage` só foram validadas em bancos de teste isolados. A `014` só cria tabelas novas (tickets e mensagens agendadas do bot).
 - A API **recusa iniciar** com migration pendente. Os scripts de update e start verificam isso (`npm run db:check`, somente leitura) e abortam **sem parar a API**.
 - Nada aplica migration automaticamente. Em produção, `db:migrate` só roda com `MIGRATE_CONFIRM=<POSTGRES_DATABASE>`, e só em `NODE_ENV=production` no `.env` (é por isso que essa linha é obrigatória).
 
@@ -375,6 +375,29 @@ D:\SUBURBIO\suburbio-site\deploy\update-all.ps1 -Services api   # 5. build/resta
 ```
 
 Em banco novo e vazio, o backup do passo 2 é opcional. Em qualquer banco com dados, ele é **obrigatório**.
+
+### Tickets e scheduler: SQLite → API
+
+Uma única vez, depois que a API estiver com a `014_discord_storage` aplicada e respondendo `/ready`. Nada migra sozinho no boot. A ferramenta lê o SQLite do bot **somente leitura**, nunca o altera nem apaga, e por padrão só simula.
+
+```powershell
+pm2 stop suburbio-bot                                   # 1. parar o bot (o --apply recusa com o bot respondendo)
+$stamp = Get-Date -Format yyyyMMdd_HHmm                 # 2. backups
+Copy-Item D:\SUBURBIO\suburbio-bot\data\runtime "D:\SUBURBIO\backups\bot-runtime_$stamp" -Recurse
+& 'C:\Program Files\PostgreSQL\18\bin\pg_dump.exe' -U suburbio_api -h 127.0.0.1 -Fc -f "D:\SUBURBIO\backups\suburbio_api_$stamp.dump" suburbio_api
+cd D:\SUBURBIO\suburbio-bot
+npm run storage:migrate                                 # 3. dry-run: resumo local + simulação na API
+npm run storage:migrate -- --apply                      # 4. importa e confere registro a registro
+npm run storage:migrate -- --apply                      # 5. (opcional) repetir: tudo "unchanged"
+notepad .env                                            # 6. TICKET_STORAGE_MODE=api e SCHEDULER_STORAGE_MODE=api
+pm2 restart suburbio-bot                                # 7. subir já no modo api
+D:\SUBURBIO\suburbio-site\deploy\healthcheck.ps1 -Services bot
+```
+
+- O dry-run mostra o resumo local (tickets por estado, `sequence.ticket`, mensagens por status) e a simulação na API: antes e depois, criados, já existentes e conflitos.
+- Qualquer inconsistência ou conflito encerra com código 1, sem gravar nada. Exemplos: o mesmo ID com conteúdo diferente na API, dois tickets ativos do mesmo usuário, sequência menor que o maior ID, mensagem presa em `sending`.
+- O `--apply` termina com "Conferência OK" quando cada ticket e mensagem está idêntico na API.
+- **Rollback:** voltar os dois seletores para `local` e rodar `pm2 restart suburbio-bot`. O SQLite continua intacto, mas não terá o que foi criado no modo api. As tabelas da API ficam como estão.
 
 ## 15. Primeiro start
 
