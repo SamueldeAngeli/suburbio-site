@@ -14,7 +14,7 @@
 .EXAMPLE
   .\start-all.ps1
 .EXAMPLE
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\SUBURBIO\suburbio-site\deploy\start-all.ps1 -Boot
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\start-all.ps1 -Boot
 #>
 [CmdletBinding()]
 param(

@@ -8,7 +8,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 $OutputEncoding = $utf8
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-# Raiz padrão: pasta que contém os três repositórios (ex.: D:\SUBURBIO).
+# Raiz padrão: pasta que contém os três repositórios (ex.: C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO).
 function Get-DefaultRoot {
     Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 }
@@ -258,7 +258,10 @@ function Invoke-HttpProbe {
     param([Parameter(Mandatory)][string]$Url, [int]$TimeoutSec = 5)
     try {
         $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSec -MaximumRedirection 0
-        return [pscustomobject]@{ Status = [int]$response.StatusCode; Body = [string]$response.Content }
+        # Sem Content-Type de texto, o PowerShell 5.1 devolve o corpo como bytes.
+        $content = $response.Content
+        if ($content -is [byte[]]) { $content = [Text.Encoding]::UTF8.GetString($content) }
+        return [pscustomobject]@{ Status = [int]$response.StatusCode; Body = [string]$content }
     } catch {
         $status = 0
         if ($_.Exception.PSObject.Properties['Response'] -and $_.Exception.Response) {

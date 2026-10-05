@@ -4,7 +4,7 @@ Arquitetura do ecossistema na VPS. Cada serviço tem seu próprio repositório, 
 
 ## Processos e portas
 
-Pastas na VPS: `D:\SUBURBIO\suburbio-api`, `D:\SUBURBIO\suburbio-site`, `D:\SUBURBIO\suburbio-bot`.
+Pastas na VPS: `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api`, `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site`, `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot`.
 
 | Processo | Gerenciador | Escuta | Exposição pública |
 | --- | --- | --- | --- |
@@ -49,7 +49,7 @@ Site e bot falam com a API por `http://127.0.0.1:3000` (HMAC). Por isso a API n�
 ## Restart, logs e backup
 
 - **Restart:** `pm2 restart suburbio-api` (o mesmo vale para site e bot). API e bot fazem shutdown gracioso por mensagem IPC (`shutdown_with_message`, já que o Windows não entrega SIGINT): a API fecha workers e conexões, e o bot drena eventos e fecha o SQLite. O site não guarda estado. Reiniciar a API não perde pedidos, porque o estado está no PostgreSQL e o outbox retoma pelas leases.
-- **Logs:** `pm2 logs <nome>`. Os arquivos ficam em `<repositório>\logs\out.log` e `error.log`. São JSON por linha (site e API com `timestamp`, `service`, `level`, `event` e `correlationId`). Use `pm2-logrotate` (10 MB, 14 arquivos). Correlacione Site → API pelo `correlationId`. Os logs dos scripts de deploy ficam em `D:\SUBURBIO\.deploy-state\logs`.
+- **Logs:** `pm2 logs <nome>`. Os arquivos ficam em `<repositório>\logs\out.log` e `error.log`. São JSON por linha (site e API com `timestamp`, `service`, `level`, `event` e `correlationId`). Use `pm2-logrotate` (10 MB, 14 arquivos). Correlacione Site → API pelo `correlationId`. Os logs dos scripts de deploy ficam em `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\.deploy-state\logs`.
 - **Backup diário:**
   - API: `pg_dump -Fc suburbio_api > suburbio_api_AAAAMMDD.dump`. É o único dado crítico.
   - Bot: copie `data/runtime/runtime.sqlite` (com `-wal`/`-shm`, ou com o processo parado), `data/transcripts` e `data/scheduled-media`.

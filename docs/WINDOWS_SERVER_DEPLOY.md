@@ -7,7 +7,7 @@ Todos os comandos são **PowerShell como Administrador**, salvo indicação. Nen
 ## Visão geral
 
 ```text
-D:\SUBURBIO\
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\
   suburbio-api\      repositório suburbio-api   -> PM2 suburbio-api   127.0.0.1:3000
   suburbio-site\     repositório suburbio-site  -> PM2 suburbio-site  127.0.0.1:3002
   suburbio-bot\      repositório suburbio-bot   -> PM2 suburbio-bot   127.0.0.1:3101 (só health)
@@ -29,11 +29,114 @@ Scripts de deploy (ficam no repositório do site, pasta `deploy\`):
 | `deploy\Caddyfile.example` | Reverse proxy/HTTPS |
 | `deploy\livekit.yaml.example` | Configuração do LiveKit |
 
-Todos aceitam `-Root` (padrão: pasta-mãe do repositório do site, ou seja, `D:\SUBURBIO`) e `-Services api,site,bot`. Ajuda: `Get-Help .\update-all.ps1 -Full`.
+Todos aceitam `-Root` (padrão: pasta-mãe do repositório do site, ou seja, `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO`) e `-Services api,site,bot`. Ajuda: `Get-Help .\update-all.ps1 -Full`.
+
+## 0. Produção atual e rollout de tickets/scheduler para a API
+
+### Estado da VPS de produção (2026-10-05)
+
+| Item | Estado |
+| --- | --- |
+| Repositórios | `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api`, `...\suburbio-bot`, `...\suburbio-site` |
+| PM2 | `suburbio-api`, `suburbio-bot` e `suburbio-site` online; `pm2 save` feito; volta após reboot já preparada no Agendador de Tarefas |
+| PostgreSQL / Redis (Memurai) | 127.0.0.1:5432 / 127.0.0.1:6379 |
+| API / health do bot | 127.0.0.1:3000 / 127.0.0.1:3101 |
+| Site | **0.0.0.0:3002**, temporário, para teste por IP; `AUTH_ENABLED=false`; sem domínio/HTTPS ainda |
+| Bot (`.env`) | `API_ENABLED=true`, `STORAGE_MODE=api`, `TICKET_STORAGE_MODE=local`, `SCHEDULER_STORAGE_MODE=local`, `ROLE_AUTOMATION_SAFE_MODE=true`, `SITE_URL` vazio |
+| SQLite real do bot | `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\data\runtime\runtime.sqlite`: 6 tickets (4 closed, 2 open), `sequence.ticket = 6`, 4 mensagens agendadas (todas `sent`) |
+| Cópia antiga/restaurada | `...\suburbio-bot\data\data\runtime\runtime.sqlite`: **nunca usar como origem da migração** |
+
+Regras deste rollout:
+- **Não reiniciar a VPS** e não recriar a tarefa do Agendador nem o `pm2 save` inicial (as seções 4 e 15 são referência para instalação nova).
+- **Sempre passe `-Services`** ao `update-all.ps1`. Sem esse parâmetro ele também rebuilda o site e o recria a partir do `ecosystem.config.cjs` (127.0.0.1:3002), encerrando o teste por IP. Se o `ecosystem.config.cjs` do site foi editado na VPS, o update do site é recusado por "alterações locais". Este rollout não toca no site.
+- A migration `014_discord_storage` **não é aplicada automaticamente**: o `update-all` para ao detectá-la, e você a aplica manualmente (etapa A).
+- O bot é atualizado **ainda com tickets/scheduler em `local`**. Os seletores só mudam para `api` depois de dry-run, `--apply` e "Conferência OK" (etapa E).
+- Primeira execução do `update-all` nesta VPS: ainda não existe `PRODUCAO\.deploy-state`, então ele reinstala as dependências (`npm ci`) e para o serviço durante instalação e build (cerca de 1–3 min por serviço).
+- Ajuste o caminho do `pg_dump.exe` à versão instalada (`C:\Program Files\PostgreSQL\<versão>\bin`).
+
+### Etapa A — API e migration 014
+
+```powershell
+pm2 ls                                                  # suburbio-api, suburbio-bot e suburbio-site online
+git -C C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api status --short   # deve estar vazio
+git -C C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot status --short   # deve estar vazio
+# Só baixa scripts e docs novos do repositório do site; o site em execução não é rebuildado nem reiniciado.
+git -C C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site pull --ff-only
+
+# 1. Pull da API: o script PARA ao detectar a 014 pendente, sem parar a API (esperado).
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1 -Services api
+
+# 2. Backup e migration manual. A 014 só cria tabelas novas: a API atual pode continuar online.
+cd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api
+npm run db:status                                       # conferir host/banco e que só a 014 está pendente
+& 'C:\Program Files\PostgreSQL\18\bin\pg_dump.exe' -U suburbio_api -h 127.0.0.1 -Fc -f "C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\backups\suburbio_api_$(Get-Date -Format yyyyMMdd_HHmm).dump" suburbio_api
+$env:MIGRATE_CONFIRM = 'suburbio_api'; npm run db:migrate; Remove-Item Env:\MIGRATE_CONFIRM
+npm run db:check                                        # "Pendentes: nenhuma"
+
+# 3. Build e restart da API com o código novo + health.
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1 -Services api
+```
+
+### Etapa B — Bot atualizado, ainda em modo local
+
+```powershell
+Select-String -Path C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\.env -Pattern '^(TICKET|SCHEDULER)_STORAGE_MODE='   # ambos =local
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1 -Services bot
+```
+
+O bot volta usando o SQLite, exatamente como antes. Abra e feche um ticket de teste no Discord, se quiser confirmar.
+
+### Etapa C — Dry-run (o bot pode continuar online; o SQLite é aberto somente leitura)
+
+```powershell
+cd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot
+npm run storage:migrate -- --db C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\data\runtime\runtime.sqlite
+```
+
+Esperado:
+- a linha `SQLite (somente leitura)` mostra exatamente o caminho acima;
+- `Local`: 6 tickets (`closed: 4`, `open: 2`), `ticketSequence: 6`, 4 mensagens (`sent: 4`);
+- `API antes`: zeros; `API depois`: `{"tickets":6,"scheduledMessages":4,"ticketSequence":6}`;
+- criados 6 e 4, nenhum `CONFLITO`;
+- última linha: "Dry-run concluído sem conflitos".
+
+Qualquer número diferente, conflito ou erro: **pare aqui**. Nada foi gravado.
+
+### Etapa D — Aplicar (bot parado)
+
+```powershell
+pm2 stop suburbio-bot
+$stamp = Get-Date -Format yyyyMMdd_HHmm
+Copy-Item C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\data\runtime "C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\backups\bot-runtime_$stamp" -Recurse
+& 'C:\Program Files\PostgreSQL\18\bin\pg_dump.exe' -U suburbio_api -h 127.0.0.1 -Fc -f "C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\backups\suburbio_api_$stamp.dump" suburbio_api
+cd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot
+npm run storage:migrate -- --db C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\data\runtime\runtime.sqlite --apply
+npm run storage:migrate -- --db C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\data\runtime\runtime.sqlite --apply   # repetição: tudo "unchanged"
+```
+
+O primeiro `--apply` precisa terminar com `Conferência OK: 6 tickets e 4 mensagens idênticos na API.`, que é a comparação 1:1, campo a campo, de cada registro. O segundo precisa mostrar `{"created":0,"unchanged":6}` e `{"created":0,"unchanged":4}`.
+
+Se algo falhar nesta etapa, os seletores ainda estão em `local`: `pm2 start suburbio-bot` volta exatamente ao estado anterior.
+
+### Etapa E — Trocar os seletores para api (somente após C e D sem erros)
+
+```powershell
+notepad C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\.env
+# alterar SOMENTE estas duas linhas:
+#   TICKET_STORAGE_MODE=api
+#   SCHEDULER_STORAGE_MODE=api
+pm2 restart suburbio-bot                                # o processo novo relê o .env
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\healthcheck.ps1 -Services api,bot
+pm2 save
+```
+
+Validação funcional no Discord: abra um ticket (deve receber o **#7**), confira `/mensagem agendadas` (as 4 enviadas aparecem) e veja `pm2 logs suburbio-bot --lines 100` sem erros de API.
+
+**Rollback do storage:** voltar as duas linhas para `local` e rodar `pm2 restart suburbio-bot`. O SQLite está intacto (e há a cópia `backups\bot-runtime_<stamp>`). Tickets e mensagens criados no modo api nesse intervalo ficam só na API. As tabelas da 014 permanecem: o código anterior da API é compatível com elas.
 
 ## 1. Pré-requisitos
 
-- Windows Server 2025 atualizado, acesso de Administrador, disco `D:`.
+- Windows Server 2025 atualizado, acesso de Administrador.
 - DNS (registros A, e AAAA se houver IPv6) apontando para o IP público da VPS: `<domínio>`, `www`, `api`, `tela` e `turn`. Neste guia, `<domínio>` = `suburbioroleplay.com`. Troque se o domínio final for outro.
 - Relógio sincronizado. O HMAC tolera só ±60 s:
 
@@ -46,7 +149,7 @@ Todos aceitam `-Root` (padrão: pasta-mãe do repositório do site, ou seja, `D:
 - Crie as pastas:
 
   ```powershell
-  New-Item -ItemType Directory -Force D:\SUBURBIO, D:\SUBURBIO\caddy, D:\SUBURBIO\livekit, D:\SUBURBIO\backups
+  New-Item -ItemType Directory -Force C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO, C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy, C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit, C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\backups
   ```
 
 ## 2. Git
@@ -97,9 +200,9 @@ Logs de cada processo: `<repositório>\logs\out.log` e `error.log` (configurado 
 ## 5. Clonagem dos 3 repositórios
 
 ```powershell
-git clone https://github.com/SamueldeAngeli/suburbio-api.git  D:\SUBURBIO\suburbio-api
-git clone https://github.com/SamueldeAngeli/suburbio-site.git D:\SUBURBIO\suburbio-site
-git clone https://github.com/SamueldeAngeli/suburbio-bot.git  D:\SUBURBIO\suburbio-bot
+git clone https://github.com/SamueldeAngeli/suburbio-api.git  C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api
+git clone https://github.com/SamueldeAngeli/suburbio-site.git C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site
+git clone https://github.com/SamueldeAngeli/suburbio-bot.git  C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot
 ```
 
 Os scripts esperam exatamente esses nomes de pasta. Não edite arquivos versionados na VPS: o update recusa rodar com alterações locais.
@@ -108,14 +211,14 @@ Os scripts esperam exatamente esses nomes de pasta. Não edite arquivos versiona
 
 | Serviço | Arquivo na VPS | Modelo |
 | --- | --- | --- |
-| API | `D:\SUBURBIO\suburbio-api\.env` | `.env.example` do repo |
-| Site | `D:\SUBURBIO\suburbio-site\.env.production.local` | `.env.example` do repo |
-| Bot | `D:\SUBURBIO\suburbio-bot\.env` | `.env.example` do repo |
+| API | `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api\.env` | `.env.example` do repo |
+| Site | `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\.env.production.local` | `.env.example` do repo |
+| Bot | `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\.env` | `.env.example` do repo |
 
 ```powershell
-Copy-Item D:\SUBURBIO\suburbio-api\.env.example  D:\SUBURBIO\suburbio-api\.env
-Copy-Item D:\SUBURBIO\suburbio-site\.env.example D:\SUBURBIO\suburbio-site\.env.production.local
-Copy-Item D:\SUBURBIO\suburbio-bot\.env.example  D:\SUBURBIO\suburbio-bot\.env
+Copy-Item C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api\.env.example  C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api\.env
+Copy-Item C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\.env.example C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\.env.production.local
+Copy-Item C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\.env.example  C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\.env
 ```
 
 Gere cada secret separadamente (nunca reutilize valores de desenvolvimento):
@@ -178,7 +281,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 Permita leitura só para Administradores e para a conta que roda o PM2:
 
 ```powershell
-foreach ($f in 'D:\SUBURBIO\suburbio-api\.env','D:\SUBURBIO\suburbio-site\.env.production.local','D:\SUBURBIO\suburbio-bot\.env') {
+foreach ($f in 'C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api\.env','C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\.env.production.local','C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot\.env') {
   icacls $f /inheritance:r /grant:r "Administrators:F" "SYSTEM:F" "${env:USERNAME}:R"
 }
 ```
@@ -232,20 +335,20 @@ O bot tem também `scripts\start-windows.ps1` (execução direta, sem PM2). **N�
 
 ## 10. Caddy
 
-1. Baixe o `caddy_windows_amd64.exe` oficial (caddyserver.com/download ou GitHub releases) para `D:\SUBURBIO\caddy\caddy.exe`.
+1. Baixe o `caddy_windows_amd64.exe` oficial (caddyserver.com/download ou GitHub releases) para `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\caddy.exe`.
 2. Gere o Caddyfile a partir do exemplo, trocando o domínio (UTF-8 sem BOM):
 
    ```powershell
    $domain = 'suburbioroleplay.com'
-   $text = [IO.File]::ReadAllText('D:\SUBURBIO\suburbio-site\deploy\Caddyfile.example') -replace '\{\$SUBURBIO_DOMAIN\}', $domain
-   [IO.File]::WriteAllText('D:\SUBURBIO\caddy\Caddyfile', $text, (New-Object Text.UTF8Encoding($false)))
-   D:\SUBURBIO\caddy\caddy.exe validate --config D:\SUBURBIO\caddy\Caddyfile
+   $text = [IO.File]::ReadAllText('C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\Caddyfile.example') -replace '\{\$SUBURBIO_DOMAIN\}', $domain
+   [IO.File]::WriteAllText('C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\Caddyfile', $text, (New-Object Text.UTF8Encoding($false)))
+   C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\caddy.exe validate --config C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\Caddyfile
    ```
 
 3. Registre o Caddy como serviço do Windows (ele tem suporte nativo):
 
    ```powershell
-   sc.exe create caddy start= auto binPath= "D:\SUBURBIO\caddy\caddy.exe run --config D:\SUBURBIO\caddy\Caddyfile"
+   sc.exe create caddy start= auto binPath= "C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\caddy.exe run --config C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\Caddyfile"
    sc.exe failure caddy reset= 86400 actions= restart/5000/restart/5000/restart/5000
    Start-Service caddy
    ```
@@ -264,7 +367,7 @@ O que o exemplo publica:
 
 ## 11. HTTPS
 
-O Caddy emite e renova os certificados (Let's Encrypt, com ZeroSSL de reserva) assim que os DNS apontam para a VPS e as portas 80/443 estão abertas. Os certificados ficam em `D:\SUBURBIO\caddy\data` (`storage` fixo no Caddyfile). Confira com:
+O Caddy emite e renova os certificados (Let's Encrypt, com ZeroSSL de reserva) assim que os DNS apontam para a VPS e as portas 80/443 estão abertas. Os certificados ficam em `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\data` (`storage` fixo no Caddyfile). Confira com:
 
 ```powershell
 curl.exe -sI https://suburbioroleplay.com/api/health
@@ -298,19 +401,19 @@ maxmemory-policy noeviction
 
 Necessário só para `/tela` (compartilhamento de tela). Com `LIVEKIT_ENABLED=false`, o resto do site funciona normalmente.
 
-1. Baixe o binário Windows do `livekit-server` (GitHub `livekit/livekit`, releases, `windows_amd64`) para `D:\SUBURBIO\livekit\`.
+1. Baixe o binário Windows do `livekit-server` (GitHub `livekit/livekit`, releases, `windows_amd64`) para `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit\`.
 2. Crie a configuração a partir do exemplo, troque `<domínio>` e gere o par key/secret (secret ≥ 32):
 
    ```powershell
-   Copy-Item D:\SUBURBIO\suburbio-site\deploy\livekit.yaml.example D:\SUBURBIO\livekit\livekit.yaml
-   notepad D:\SUBURBIO\livekit\livekit.yaml
+   Copy-Item C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\livekit.yaml.example C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit\livekit.yaml
+   notepad C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit\livekit.yaml
    ```
 
 3. Suba o Caddy primeiro (seção 10), para o certificado de `turn.<domínio>` existir.
 4. Rode pelo PM2:
 
    ```powershell
-   pm2 start D:\SUBURBIO\livekit\livekit-server.exe --name livekit --interpreter none --cwd D:\SUBURBIO\livekit -- --config D:\SUBURBIO\livekit\livekit.yaml
+   pm2 start C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit\livekit-server.exe --name livekit --interpreter none --cwd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit -- --config C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\livekit\livekit.yaml
    pm2 save
    ```
 
@@ -366,38 +469,30 @@ Instale o **PostgreSQL 18** (instalador oficial para Windows, como serviço). Em
 Ordem recomendada (exige `npm ci` já feito na API, porque usa `tsx`):
 
 ```powershell
-cd D:\SUBURBIO\suburbio-api
+cd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api
 npm run db:status                                   # 1. conferir banco alvo (host/db) e pendências
-& 'C:\Program Files\PostgreSQL\18\bin\pg_dump.exe' -U suburbio_api -h 127.0.0.1 -Fc -f "D:\SUBURBIO\backups\suburbio_api_$(Get-Date -Format yyyyMMdd_HHmm).dump" suburbio_api   # 2. backup
+& 'C:\Program Files\PostgreSQL\18\bin\pg_dump.exe' -U suburbio_api -h 127.0.0.1 -Fc -f "C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\backups\suburbio_api_$(Get-Date -Format yyyyMMdd_HHmm).dump" suburbio_api   # 2. backup
 pm2 stop suburbio-api                               # 3. parar a API (se já estiver rodando)
 $env:MIGRATE_CONFIRM = 'suburbio_api'; npm run db:migrate; Remove-Item Env:\MIGRATE_CONFIRM   # 4. migrar
-D:\SUBURBIO\suburbio-site\deploy\update-all.ps1 -Services api   # 5. build/restart/health
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1 -Services api   # 5. build/restart/health
 ```
 
 Em banco novo e vazio, o backup do passo 2 é opcional. Em qualquer banco com dados, ele é **obrigatório**.
 
 ### Tickets e scheduler: SQLite → API
 
-Uma única vez, depois que a API estiver com a `014_discord_storage` aplicada e respondendo `/ready`. Nada migra sozinho no boot. A ferramenta lê o SQLite do bot **somente leitura**, nunca o altera nem apaga, e por padrão só simula.
-
-```powershell
-pm2 stop suburbio-bot                                   # 1. parar o bot (o --apply recusa com o bot respondendo)
-$stamp = Get-Date -Format yyyyMMdd_HHmm                 # 2. backups
-Copy-Item D:\SUBURBIO\suburbio-bot\data\runtime "D:\SUBURBIO\backups\bot-runtime_$stamp" -Recurse
-& 'C:\Program Files\PostgreSQL\18\bin\pg_dump.exe' -U suburbio_api -h 127.0.0.1 -Fc -f "D:\SUBURBIO\backups\suburbio_api_$stamp.dump" suburbio_api
-cd D:\SUBURBIO\suburbio-bot
-npm run storage:migrate                                 # 3. dry-run: resumo local + simulação na API
-npm run storage:migrate -- --apply                      # 4. importa e confere registro a registro
-npm run storage:migrate -- --apply                      # 5. (opcional) repetir: tudo "unchanged"
-notepad .env                                            # 6. TICKET_STORAGE_MODE=api e SCHEDULER_STORAGE_MODE=api
-pm2 restart suburbio-bot                                # 7. subir já no modo api
-D:\SUBURBIO\suburbio-site\deploy\healthcheck.ps1 -Services bot
-```
+Uma única vez, depois que a API estiver com a `014_discord_storage` aplicada e respondendo `/ready`. O roteiro completo para a VPS de produção, com comandos e resultados esperados, está na **seção 0, etapas A a E**. Resumo:
+- Nada migra sozinho no boot.
+- `npm run storage:migrate` lê o SQLite do bot **somente leitura**, nunca o altera nem apaga, e por padrão só simula (dry-run).
+- Sempre informe `--db` com o SQLite real: `...\suburbio-bot\data\runtime\runtime.sqlite`, nunca `data\data\...`. Sem `--db`, o padrão é `<pasta do bot>\data\runtime\runtime.sqlite`, independente do diretório atual.
+- `--apply` exige o bot parado e termina com a conferência 1:1 de cada registro.
 
 - O dry-run mostra o resumo local (tickets por estado, `sequence.ticket`, mensagens por status) e a simulação na API: antes e depois, criados, já existentes e conflitos.
 - Qualquer inconsistência ou conflito encerra com código 1, sem gravar nada. Exemplos: o mesmo ID com conteúdo diferente na API, dois tickets ativos do mesmo usuário, sequência menor que o maior ID, mensagem presa em `sending`.
 - O `--apply` termina com "Conferência OK" quando cada ticket e mensagem está idêntico na API.
 - **Rollback:** voltar os dois seletores para `local` e rodar `pm2 restart suburbio-bot`. O SQLite continua intacto, mas não terá o que foi criado no modo api. As tabelas da API ficam como estão.
+
+Para uma instalação nova, a ordem da migration da API acima também vale. Para a 014 especificamente, não é preciso parar a API, porque ela só cria tabelas.
 
 ## 15. Primeiro start
 
@@ -405,17 +500,17 @@ Com PostgreSQL, Redis e os três `.env` prontos:
 
 ```powershell
 # 1. API: instalar e migrar (primeira vez)
-cd D:\SUBURBIO\suburbio-api
+cd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-api
 npm ci --include=dev --no-audit --no-fund
 $env:MIGRATE_CONFIRM = 'suburbio_api'; npm run db:migrate; Remove-Item Env:\MIGRATE_CONFIRM
 
 # 2. Bot: registrar slash commands (uma vez, e de novo quando os comandos mudarem)
-cd D:\SUBURBIO\suburbio-bot
+cd C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-bot
 npm ci --include=dev --no-audit --no-fund
 npm run deploy:commands
 
 # 3. Instalar, buildar e subir os três (API -> Site -> Bot), com healthcheck
-D:\SUBURBIO\suburbio-site\deploy\update-all.ps1
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1
 ```
 
 Depois do primeiro start com `BOOTSTRAP_OWNER_ENABLED=true`, mude para `false` no `.env` da API e rode `pm2 restart suburbio-api`.
@@ -425,7 +520,7 @@ Depois do primeiro start com `BOOTSTRAP_OWNER_ENABLED=true`, mude para `false` n
 Crie uma tarefa agendada que roda `start-all.ps1 -Boot` na inicialização, **com a mesma conta** usada para o PM2. O Windows vai pedir a senha dessa conta:
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "D:\SUBURBIO\suburbio-site\deploy\start-all.ps1" -Boot' -WorkingDirectory 'D:\SUBURBIO'
+$action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\start-all.ps1" -Boot' -WorkingDirectory 'C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO'
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
 Register-ScheduledTask -TaskName 'Suburbio PM2' -Action $action -Trigger $trigger -Settings $settings -RunLevel Highest -User "$env:COMPUTERNAME\$env:USERNAME" -Password (Read-Host 'Senha da conta')
@@ -442,8 +537,8 @@ Register-ScheduledTask -TaskName 'Suburbio PM2' -Action $action -Trigger $trigge
 | Bot | `GET http://127.0.0.1:3101/health` | `GET http://127.0.0.1:3101/ready`: gateway do Discord e SQLite |
 
 ```powershell
-D:\SUBURBIO\suburbio-site\deploy\healthcheck.ps1
-D:\SUBURBIO\suburbio-site\deploy\healthcheck.ps1 -PublicSiteUrl https://suburbioroleplay.com -PublicApiUrl https://api.suburbioroleplay.com
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\healthcheck.ps1
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\healthcheck.ps1 -PublicSiteUrl https://suburbioroleplay.com -PublicApiUrl https://api.suburbioroleplay.com
 ```
 
 A verificação pública também confirma que `/internal/*` responde 404 pelo proxy. O script sai com código 1 se qualquer check falhar.
@@ -451,8 +546,8 @@ A verificação pública também confirma que `/internal/*` responde 404 pelo pr
 ## 17. Update manual
 
 ```powershell
-D:\SUBURBIO\suburbio-site\deploy\update-all.ps1                 # os três
-D:\SUBURBIO\suburbio-site\deploy\update-all.ps1 -Services site  # só um
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1                 # os três
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\update-all.ps1 -Services site  # só um
 ```
 
 Para cada serviço, o script:
@@ -464,9 +559,9 @@ Para cada serviço, o script:
 5. Para o processo só quando é preciso trocar arquivos travados pelo Windows: dependências mudaram, ou é o site (o `next build` recria `.next`).
 6. Roda `npm ci --include=dev` só se `package.json`/`package-lock.json` mudaram (`-ForceInstall` força), depois `npm run build` (e `verify:client` no site). Para em qualquer erro.
 7. Reinicia no PM2 **somente após build bem-sucedido** e espera `health`/`ready` ficarem 200.
-8. Registra o commit em `D:\SUBURBIO\.deploy-state\` (`history.log`), roda `pm2 save` e faz o healthcheck final.
+8. Registra o commit em `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\.deploy-state\` (`history.log`), roda `pm2 save` e faz o healthcheck final.
 
-Logs de cada execução: `D:\SUBURBIO\.deploy-state\logs\update-*.log`. Duas execuções simultâneas são bloqueadas.
+Logs de cada execução: `C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\.deploy-state\logs\update-*.log`. Duas execuções simultâneas são bloqueadas.
 
 Downtime esperado: API e bot só durante o restart (segundos), a menos que as dependências mudem. O site fica fora durante o build (1–3 min), então atualize em horário de pouco movimento.
 
@@ -475,11 +570,11 @@ Se algum `ecosystem.config.cjs` mudar, o script já aplica a mudança: ele sempr
 ## 18. Rollback
 
 ```powershell
-D:\SUBURBIO\suburbio-site\deploy\rollback.ps1 -Service site                 # volta ao commit anterior do history.log
-D:\SUBURBIO\suburbio-site\deploy\rollback.ps1 -Service bot -Commit 0f9e569  # commit específico
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\rollback.ps1 -Service site                 # volta ao commit anterior do history.log
+C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-site\deploy\rollback.ps1 -Service bot -Commit 0f9e569  # commit específico
 ```
 
-O repositório fica em HEAD destacado, e o `update-all` se recusa a atualizá-lo até você rodar `git -C D:\SUBURBIO\suburbio-<serviço> switch main`.
+O repositório fica em HEAD destacado, e o `update-all` se recusa a atualizá-lo até você rodar `git -C C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\suburbio-<serviço> switch main`.
 
 - **Site ou bot:** rollback direto. O site não tem banco. O SQLite do bot é migrado de forma aditiva: não apague `data\`.
 - **API sem migration nova:** rollback direto.

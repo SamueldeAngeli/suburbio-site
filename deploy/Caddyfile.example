@@ -1,7 +1,7 @@
-# Caddyfile EXEMPLO — Windows Server 2025. Copiar para D:\SUBURBIO\caddy\Caddyfile na VPS.
+# Caddyfile EXEMPLO — Windows Server 2025. Copiar para C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\Caddyfile na VPS.
 # Domínio: defina a variável de ambiente de máquina SUBURBIO_DOMAIN (ex.: suburbioroleplay.com)
 # ou substitua {$SUBURBIO_DOMAIN} pelo domínio real em todo o arquivo.
-# Validar antes de recarregar:  caddy validate --config D:\SUBURBIO\caddy\Caddyfile
+# Validar antes de recarregar:  caddy validate --config C:\Users\Administrador\Documents\SUBURBIO\PRODUCAO\caddy\Caddyfile
 #
 # Pré-requisitos: DNS A/AAAA de <domínio>, www, api, tela e turn apontando para a VPS;
 # portas 80 e 443 abertas (o Caddy emite e renova os certificados sozinho via HTTP-01/TLS-ALPN).
@@ -10,7 +10,7 @@
 	# E-mail para avisos da autoridade certificadora (opcional, recomendado):
 	# email admin@exemplo.com
 	# Caminho fixo dos certificados: o LiveKit lê daqui o certificado de turn.<domínio> (TURN/TLS 5349).
-	storage file_system D:/SUBURBIO/caddy/data
+	storage file_system C:/Users/Administrador/Documents/SUBURBIO/PRODUCAO/caddy/data
 }
 
 (security_headers) {
