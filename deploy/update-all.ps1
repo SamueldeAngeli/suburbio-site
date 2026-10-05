@@ -42,6 +42,7 @@ Start-Transcript -Path $transcript | Out-Null
 $exitCode = 0
 try {
     Write-Section "Subúrbio update  |  raiz: $Root  |  serviços: $($Services -join ', ')"
+    Assert-PortPlan -Root $Root
     $selected = Select-Services -Root $Root -Keys $Services
     foreach ($service in $selected) {
         Invoke-ServiceDeploy -Service $service -Root $Root -SkipPull:$SkipPull -Force:$Force -ForceInstall:$ForceInstall

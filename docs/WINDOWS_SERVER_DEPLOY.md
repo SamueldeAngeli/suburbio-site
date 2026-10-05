@@ -213,6 +213,19 @@ Cada repositório tem seu `ecosystem.config.cjs`, com `cwd` = pasta do repositó
 | `suburbio-site` | `next start --hostname 127.0.0.1 --port 3002` | 127.0.0.1:3002 |
 | `suburbio-bot` | `dist/index.js` | 127.0.0.1:`HEALTH_PORT` (só health) |
 
+### Portas (nunca repetir)
+
+| Porta | Dono | Onde se define |
+| --- | --- | --- |
+| 3000 | API | `PORT` em `suburbio-api\.env` |
+| 3002 | Site | fixa em `suburbio-site\ecosystem.config.cjs` (`--port 3002` vence `PORT`) |
+| 3101 | Bot (só health) | `HEALTH_PORT` em `suburbio-bot\.env` |
+| 80, 443 | Caddy | — |
+| 5432 / 6379 | PostgreSQL / Redis | — |
+| 7880, 7881, 7882, 3478, 5349 | LiveKit | `livekit.yaml` |
+
+`update-all.ps1` e `start-all.ps1` recusam continuar se API, site e bot repetirem uma porta ou usarem uma porta reservada da tabela, e informam o PID quando outro programa ocupa a porta de um serviço. **Não defina `PORT`, `HOST` ou `HEALTH_PORT` como variável de ambiente do Windows**: o PM2 repassa o ambiente ao processo, e o `dotenv` não sobrescreve variáveis existentes, então o valor do `.env` seria ignorado. Os scripts removem essas variáveis da própria sessão antes de iniciar, mas um `pm2 start` manual não faz isso.
+
 Comandos úteis: `pm2 ls`, `pm2 logs <app>`, `pm2 restart <app>`, `pm2 stop <app>`, `pm2 save`.
 
 O bot tem também `scripts\start-windows.ps1` (execução direta, sem PM2). **Não rode os dois ao mesmo tempo**: seriam duas instâncias consumindo a mesma outbox.
@@ -459,6 +472,7 @@ O repositório fica em HEAD destacado, e o `update-all` se recusa a atualizá-lo
 | --- | --- |
 | `pm2` não encontrado na tarefa de boot | PATH/`PM2_HOME` de máquina não aplicados ou conta diferente. Refaça a seção 4 e reabra a sessão |
 | Script bloqueado pela execution policy | Rode com `powershell -ExecutionPolicy Bypass -File ...`, ou `Set-ExecutionPolicy RemoteSigned` |
+| "Conflito de porta" / "porta ocupada por ..." / `EADDRINUSE` | Duas configurações com a mesma porta, ou outro programa (IIS, instância antiga fora do PM2) na porta. Veja a tabela da seção 9 e `Get-NetTCPConnection -State Listen -LocalPort <porta>` |
 | `EPERM`/`EBUSY` no `npm ci` ou no build | Arquivo travado por um processo em execução. `pm2 stop <app>` e rode o update de novo (o script já para quando detecta mudança de dependências) |
 | API não inicia: "Falha ao iniciar API" | `.env` inválido (o log cita o nome da variável), migration pendente (`npm run db:check`), PostgreSQL ou Redis fora |
 | Update aborta com "migrations pendentes" | Seção 14: backup, migrate com `MIGRATE_CONFIRM`, rodar o update de novo |

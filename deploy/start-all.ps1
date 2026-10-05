@@ -36,8 +36,9 @@ Start-Transcript -Path $transcript | Out-Null
 
 $exitCode = 0
 try {
+    Assert-PortPlan -Root $Root
     $selected = Select-Services -Root $Root -Keys $Services
-    $api = Get-SuburbioServices -Root $Root | Where-Object { $_.Key -eq 'api' }
+    $api =Get-SuburbioServices -Root $Root | Where-Object { $_.Key -eq 'api' }
 
     if ($Boot) {
         Write-Section 'Boot: aguardando PostgreSQL e Redis'

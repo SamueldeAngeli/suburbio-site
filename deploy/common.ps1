@@ -160,16 +160,79 @@ function Start-Pm2Service {
     param([Parameter(Mandatory)]$Service)
     Write-Step "pm2 (re)start $($Service.Name) via ecosystem.config.cjs"
     Invoke-Native -FilePath 'pm2.cmd' -Arguments @('delete', $Service.Name) -AllowedExitCodes @(0, 1) | Out-Null
+    Assert-PortFree -Service $Service
     Invoke-Native -FilePath 'pm2.cmd' -Arguments @('start', 'ecosystem.config.cjs') -WorkingDirectory $Service.Dir | Out-Null
+}
+
+# Porta do site: fixa em ecosystem.config.cjs (`next start --port 3002`; o argumento vence PORT).
+$script:SitePort = 3002
+# Portas de infraestrutura na mesma VPS que nenhum serviço Node pode usar.
+$script:ReservedPorts = @{
+    80 = 'Caddy HTTP'; 443 = 'Caddy HTTPS'; 5432 = 'PostgreSQL'; 6379 = 'Redis'
+    7880 = 'LiveKit sinalização'; 7881 = 'LiveKit RTC TCP'; 7882 = 'LiveKit RTC UDP'
+    3478 = 'LiveKit TURN UDP'; 5349 = 'LiveKit TURN TLS'; 30120 = 'FiveM'
+}
+
+# Porta HTTP de cada serviço (0 = bot sem servidor de health).
+function Get-ServicePort {
+    param([Parameter(Mandatory)]$Service)
+    $envValues = Read-DotEnv -Path (Join-Path $Service.Dir $Service.EnvFile)
+    switch ($Service.Key) {
+        'api' { return [int](Get-EnvValue $envValues 'PORT' '3000') }
+        'site' { return $script:SitePort }
+        'bot' { return [int](Get-EnvValue $envValues 'HEALTH_PORT' '0') }
+    }
+}
+
+# Garante que API, site e bot usem portas distintas e fora das reservadas.
+# Também remove PORT/HOST/HEALTH_PORT herdados da sessão: o PM2 repassa o ambiente do shell
+# ao processo, e o dotenv não sobrescreve variável existente (o .env seria ignorado).
+function Assert-PortPlan {
+    param([Parameter(Mandatory)][string]$Root)
+    foreach ($name in @('PORT', 'HOST', 'HEALTH_PORT')) {
+        if (Test-Path -LiteralPath "Env:\$name") {
+            Write-Warn "Variável $name definida no ambiente desta sessão/máquina; removida deste processo para não sobrepor os .env."
+            Remove-Item -LiteralPath "Env:\$name"
+        }
+    }
+    $used = @{}
+    foreach ($service in (Get-SuburbioServices -Root $Root)) {
+        if (-not (Test-Path -LiteralPath (Join-Path $service.Dir $service.EnvFile))) { continue }
+        $port = Get-ServicePort -Service $service
+        if ($port -eq 0) { continue }
+        if ($script:ReservedPorts.ContainsKey($port)) {
+            throw "$($service.Name) configurado na porta $port, reservada para $($script:ReservedPorts[$port])."
+        }
+        if ($used.ContainsKey($port)) {
+            throw "Conflito de porta: $($service.Name) e $($used[$port]) configurados na porta $port. Padrão: API 3000, site 3002, bot 3101."
+        }
+        $used[$port] = $service.Name
+    }
+    Write-Ok ('Portas: ' + (($used.GetEnumerator() | Sort-Object Name | ForEach-Object { "$($_.Value)=$($_.Name)" }) -join ', '))
+}
+
+# Depois de remover o processo do PM2, a porta precisa estar livre; se outro programa a ocupa, falha com o PID.
+function Assert-PortFree {
+    param([Parameter(Mandatory)]$Service, [int]$TimeoutSeconds = 15)
+    $port = Get-ServicePort -Service $Service
+    if ($port -eq 0) { return }
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $listener = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $listener) { return }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $deadline)
+    $owner = Get-Process -Id $listener.OwningProcess -ErrorAction SilentlyContinue
+    $label = if ($owner) { "$($owner.ProcessName) (PID $($owner.Id))" } else { "PID $($listener.OwningProcess)" }
+    throw "$($Service.Name): porta $port ocupada por $label. Libere a porta ou ajuste o .env antes de iniciar."
 }
 
 # Endpoints reais (ver docs/OPERATIONS.md). Bot sem HEALTH_PORT fica sem probe.
 function Get-HealthTargets {
     param([Parameter(Mandatory)]$Service)
-    $envValues = Read-DotEnv -Path (Join-Path $Service.Dir $Service.EnvFile)
+    $port = Get-ServicePort -Service $Service
     switch ($Service.Key) {
         'api' {
-            $port = Get-EnvValue $envValues 'PORT' '3000'
             return @(
                 [pscustomobject]@{ Label = 'API live'; Url = "http://127.0.0.1:$port/live" }
                 [pscustomobject]@{ Label = 'API ready'; Url = "http://127.0.0.1:$port/ready" }
@@ -177,13 +240,12 @@ function Get-HealthTargets {
         }
         'site' {
             return @(
-                [pscustomobject]@{ Label = 'Site health'; Url = 'http://127.0.0.1:3002/api/health' }
-                [pscustomobject]@{ Label = 'Site ready'; Url = 'http://127.0.0.1:3002/api/ready' }
+                [pscustomobject]@{ Label = 'Site health'; Url = "http://127.0.0.1:$port/api/health" }
+                [pscustomobject]@{ Label = 'Site ready'; Url = "http://127.0.0.1:$port/api/ready" }
             )
         }
         'bot' {
-            $port = Get-EnvValue $envValues 'HEALTH_PORT' '0'
-            if ($port -eq '0') { return @() }
+            if ($port -eq 0) { return @() }
             return @(
                 [pscustomobject]@{ Label = 'Bot health'; Url = "http://127.0.0.1:$port/health" }
                 [pscustomobject]@{ Label = 'Bot ready'; Url = "http://127.0.0.1:$port/ready" }
