@@ -5,7 +5,9 @@ import { assertCapability } from '@/lib/permissions/policy';
 import { SiteError } from '../errors';
 export class AllowlistService {
   constructor(private api = new SuburbioApiClient()) {}
-  get(playerId: string) { return this.api.allowlist(playerId); }
+  get(playerId: string) {
+    return this.api.allowlist(playerId);
+  }
   revoke(input: unknown, admin: AdminPrincipal) {
     assertCapability(admin, 'ALLOWLIST_REVOKE');
     if (admin.readOnly) throw new SiteError('API_READ_ONLY');

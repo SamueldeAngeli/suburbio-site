@@ -1,6 +1,51 @@
-import {z} from "zod";
-export const couponInput=z.object({code:z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]{3,32}$/),discountType:z.enum(["percentage","fixed"]),discountValue:z.number().int().positive().max(100000000),minimumAmountMinor:z.number().int().min(0).max(100000000),startsAt:z.iso.datetime().nullable(),expiresAt:z.iso.datetime().nullable(),maxUses:z.number().int().positive().nullable(),maxUsesPerUser:z.number().int().positive().nullable(),scope:z.enum(["ALL","VIP","CRYPTO","PRODUCT","CATEGORY"]),productIds:z.array(z.uuid()).max(100),categoryIds:z.array(z.uuid()).max(100),firstPurchaseOnly:z.boolean(),status:z.enum(["active","inactive","archived"])}).strict().refine(c=>c.discountType!=="percentage"||c.discountValue<=100,{message:"Percentual deve ser no máximo 100"}).refine(c=>!c.startsAt||!c.expiresAt||c.startsAt<c.expiresAt,{message:"Período inválido"}).refine(c=>c.scope!=="PRODUCT"||c.productIds.length>0,{message:"Selecione produtos"}).refine(c=>c.scope!=="CATEGORY"||c.categoryIds.length>0,{message:"Selecione categorias"});
-export const couponSchema=couponInput.safeExtend({id:z.uuid(),revision:z.number().int(),createdAt:z.iso.datetime(),updatedAt:z.iso.datetime()});
-export const couponSnapshotSchema=z.object({couponId:z.uuid(),couponCodeSnapshot:z.string(),discountTypeSnapshot:z.enum(["percentage","fixed"]),discountValueSnapshot:z.number().int(),grossAmountMinor:z.number().int(),discountAmountMinor:z.number().int(),netAmountMinor:z.number().int()});
-export const couponMetricsSchema=z.object({usesCount:z.number().int(),grossSalesMinor:z.string(),discountGrantedMinor:z.string(),netSalesMinor:z.string()});
-export type CouponInput=z.infer<typeof couponInput>;
+import { z } from 'zod';
+export const couponInput = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9_-]{3,32}$/),
+    discountType: z.enum(['percentage', 'fixed']),
+    discountValue: z.number().int().min(0).max(100000000),
+    minimumAmountMinor: z.number().int().min(0).max(100000000),
+    startsAt: z.iso.datetime().nullable(),
+    expiresAt: z.iso.datetime().nullable(),
+    maxUses: z.number().int().positive().nullable(),
+    maxUsesPerUser: z.number().int().positive().nullable(),
+    scope: z.enum(['ALL', 'VIP', 'CRYPTO', 'PRODUCT', 'CATEGORY']),
+    productIds: z.array(z.uuid()).max(100),
+    categoryIds: z.array(z.uuid()).max(100),
+    firstPurchaseOnly: z.boolean(),
+    status: z.enum(['active', 'inactive', 'archived']),
+  })
+  .strict()
+  .refine((c) => c.discountType !== 'fixed' || c.discountValue > 0, { message: 'Valor fixo deve ser positivo' })
+  .refine((c) => c.discountType !== 'percentage' || c.discountValue <= 100, {
+    message: 'Percentual deve ser no máximo 100',
+  })
+  .refine((c) => !c.startsAt || !c.expiresAt || c.startsAt < c.expiresAt, { message: 'Período inválido' })
+  .refine((c) => c.scope !== 'PRODUCT' || c.productIds.length > 0, { message: 'Selecione produtos' })
+  .refine((c) => c.scope !== 'CATEGORY' || c.categoryIds.length > 0, { message: 'Selecione categorias' });
+export const couponSchema = couponInput.safeExtend({
+  id: z.uuid(),
+  revision: z.number().int(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export const couponSnapshotSchema = z.object({
+  couponId: z.uuid(),
+  couponCodeSnapshot: z.string(),
+  discountTypeSnapshot: z.enum(['percentage', 'fixed']),
+  discountValueSnapshot: z.number().int(),
+  grossAmountMinor: z.number().int(),
+  discountAmountMinor: z.number().int(),
+  netAmountMinor: z.number().int(),
+});
+export const couponMetricsSchema = z.object({
+  usesCount: z.number().int(),
+  grossSalesMinor: z.string(),
+  discountGrantedMinor: z.string(),
+  netSalesMinor: z.string(),
+});
+export type CouponInput = z.infer<typeof couponInput>;

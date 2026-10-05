@@ -19,12 +19,17 @@ const resolveForRequest = cache((discordId: string) => new AccountService().reso
 export async function requireAdmin(capability: string) {
   const session = await currentSession();
   if (!session) throw new SiteError('SESSION_REQUIRED', 401);
-  limiter.consume(`admin:${session.user.discordId}`, 90);
-  return authorize(session.user.discordId, capability, { resolve: resolveForRequest });
+  await limiter.consume(`admin:${session.user.discordId}`, 90);
+  return authorize(
+    session.user.discordId,
+    capability,
+    capability && !capability.endsWith('_READ') ? new AccountService(undefined, true) : { resolve: resolveForRequest },
+  );
 }
 export async function pageAccess(capability: string, path: string) {
-  try { return await requireAdmin(capability); }
-  catch (error) {
+  try {
+    return await requireAdmin(capability);
+  } catch (error) {
     if (!(error instanceof SiteError)) throw error;
     if (error.status === 401) redirect(`/login?returnTo=${encodeURIComponent(path)}`);
     if (error.status === 403) forbidden();

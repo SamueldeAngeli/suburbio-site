@@ -1,47 +1,835 @@
 'use client';
-import {ContributionNotice} from '@/components/contribution-notice';
-import {useEffect,useRef,useState} from 'react';
-import {flushSync} from 'react-dom';
-import {ArrowUpRight,ArrowRight,ShoppingBag,Crown,Check,Plus,Minus,X,Menu,Gamepad2,MessageCircle,ShieldCheck,Sparkles,Users,MapPin,ChevronDown,Trash2,Play,Pause,Car,House} from 'lucide-react';
-import {products as demoProducts,site,type Product} from '@/lib/site';
-import {catalogSchema} from '@/lib/api/catalog-contracts';
-import {cryptoConfigSchema} from '@/lib/api/cart-contracts';
-import {validityLabel} from '@/lib/validity';
-import {CartQuote} from '@/components/cart-quote';
-import {CryptoSection} from '@/components/crypto-section';
-import {cryptoPreviewFromId} from '@/lib/crypto-preview';
-type ModelContext={registerTool:(tool:{name:string;description:string;inputSchema:object;annotations:{readOnlyHint:boolean};execute:(input:unknown)=>unknown},options:{signal:AbortSignal})=>void|Promise<void>};
-const money=(value:number)=>value.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-type Cart=Record<string,number>;
-export default function Home(){
-const [products,setProducts]=useState<Product[]>(demoProducts);const [catalogMode,setCatalogMode]=useState<'loading'|'demo'|'live'|'error'>('loading');const [cryptoConfig,setCryptoConfig]=useState<ReturnType<typeof cryptoConfigSchema.parse>|undefined>();
-const [couponCode,setCouponCode]=useState('');
-const [cart,setCart]=useState<Cart>({}); const [loaded,setLoaded]=useState(false); const [category,setCategory]=useState('Todos'); const [panel,setPanel]=useState<'cart'|'join'|null>(null); const [selected,setSelected]=useState<Product|null>(null); const [mobile,setMobile]=useState(false); const [toast,setToast]=useState(''); const [checkout,setCheckout]=useState(false); const [motion,setMotion]=useState(true); const dialog=useRef<HTMLDialogElement>(null);
-useEffect(()=>{const abort=new AbortController();void fetch('/api/vip/catalog',{signal:abort.signal}).then(async response=>{if(!response.ok)throw new Error('catalog unavailable');const body=await response.json();if(abort.signal.aborted)return;let current=demoProducts;if(body.mode==='live'){const catalog=catalogSchema.parse(body.catalog);setCryptoConfig(cryptoConfigSchema.parse(body.crypto));current=catalog.products.map(p=>({id:p.id,name:p.name,category:catalog.categories.find(c=>c.id===p.categoryId)?.name??'VIPs',price:p.priceMinor/100,validityMode:p.validityMode,durationDays:p.durationDays,renewable:p.renewable,tag:'BENEFÍCIO VIP',description:p.description,features:[],level:0}));}else if(body.mode!=='demo')throw new Error('catalog invalid');setProducts(current);setCatalogMode(body.mode);try{const raw=JSON.parse(localStorage.getItem('suburbio-cart')||'{}');const valid:Cart={};for(const id of Object.keys(raw).slice(0,50)){if((current.some(p=>p.id===id)||cryptoPreviewFromId(id))&&Number.isInteger(raw[id])&&raw[id]>0)valid[id]=Math.min(raw[id],10);}setCart(valid);}catch{}setLoaded(true);}).catch(()=>{if(!abort.signal.aborted){setProducts([]);setCatalogMode('error');}});return()=>abort.abort();},[]);
-useEffect(()=>{if(loaded){try{localStorage.setItem('suburbio-cart',JSON.stringify(cart));}catch{}}},[cart,loaded]);
-useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),3000);return()=>clearTimeout(timer);},[toast]);
-useEffect(()=>{if(panel||selected){dialog.current?.showModal();document.body.style.overflow='hidden';}else{dialog.current?.close();document.body.style.overflow='';}return()=>{document.body.style.overflow='';};},[panel,selected]);
-useEffect(()=>{const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.08});document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));return()=>obs.disconnect();},[]);
-useEffect(()=>{const context=(document as Document & {modelContext?:ModelContext}).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'filter_store_catalog',description:'Filter the visible demo VIP benefits by category. Does not place an order or charge a payment.',inputSchema:{type:'object',properties:{category:{type:'string',enum:['Todos','Carros','Casas','VIPs','Itens VIP']}},required:['category'],additionalProperties:false},annotations:{readOnlyHint:false},execute(input){if(!input||typeof input!=='object'||!('category' in input)||!['Todos','Carros','Casas','VIPs','Itens VIP'].includes(String(input.category)))throw new Error('Categoria inválida');const next=String(input.category);flushSync(()=>setCategory(next));return {category:next,products:products.filter(p=>next==='Todos'||p.category===next).map(p=>({id:p.id,name:p.name,price:p.price,currency:'BRL',demo:true}))};}},{signal:lifecycle.signal})).catch(()=>{});}catch{}return()=>lifecycle.abort();},[products]);
-const cartProducts=[...products,...Object.keys(cart).map(cryptoPreviewFromId).filter((p):p is Product=>p!==null)];
-const count=Object.values(cart).reduce((a,b)=>a+b,0); const total=cartProducts.reduce((sum,p)=>sum+p.price*(cart[p.id]||0),0);
-function add(p:Product){if(!cart[p.id]&&Object.keys(cart).length>=50){setToast('Limite de 50 itens diferentes por carrinho.');return;}setCheckout(false);setCart(c=>({...c,[p.id]:Math.min((c[p.id]||0)+1,10)}));setToast(`${p.name} adicionado ao carrinho`);}
-function change(id:string,d:number){setCart(c=>{const next={...c,[id]:Math.max(0,Math.min((c[id]||0)+d,10))};if(!next[id])delete next[id];return next;});setCheckout(false);}
-function close(){setPanel(null);setSelected(null);setCheckout(false);}
-function discord(){if(site.discordUrl)window.open(site.discordUrl,'_blank','noopener,noreferrer');else setPanel('join');}
-return <main className={motion?'':'paused'}>
-<div className="announcement"><span>DA QUEBRADA PRO MUNDO.</span><span>Uma cidade. Infinitas histórias. <ArrowUpRight size={13}/></span></div>
-<header className="header"><a href="#" className="brand" aria-label="Subúrbio RP início"><Crown/><span>SUBÚRBIO<small>ROLEPLAY</small></span></a><nav className={mobile?'nav mobile-open':'nav'} aria-label="Navegação principal"><a href="#cidade" onClick={()=>setMobile(false)}>A cidade</a><a href="#experiencias" onClick={()=>setMobile(false)}>Seu universo</a><a href="#loja" onClick={()=>setMobile(false)}>VIP <span className="nav-new">PLANOS</span></a><a href="#duvidas" onClick={()=>setMobile(false)}>Dúvidas</a></nav><div className="header-actions"><button className="cart-trigger" onClick={()=>setPanel('cart')} aria-label={`Abrir carrinho, ${count} itens`}><ShoppingBag size={19}/>{count>0&&<b>{count}</b>}</button><button className="button small discord" onClick={discord}><MessageCircle size={16}/> Nosso Discord <ArrowUpRight size={15}/></button><button className="menu-toggle icon-button" aria-label="Abrir menu" aria-expanded={mobile} onClick={()=>setMobile(!mobile)}>{mobile?<X/>:<Menu/>}</button></div></header>
-<section className="hero" id="cidade"><div className="hero-art" role="img" aria-label="Arte original Subúrbio RP: comunidade urbana à noite, coroa e grafite em azul elétrico"/><div className="hero-grid"/><div className="hero-content"><div className="eyebrow"><span className="short-line"/> BEM-VINDO AO SEU PRÓXIMO CAPÍTULO</div><h1>A RUA É NOSSA.<br/>A HISTÓRIA<br/>É <span>SUA.</span><span className="heading-star">✳</span></h1><p>Mais que uma cidade, um lugar pra pertencer.<br/>Encontre sua família, conquiste seu espaço<br className="desktop"/> e viva o seu corre.</p><div className="hero-buttons"><button className="button" onClick={()=>setPanel('join')}><Gamepad2 size={20}/> Bora pra cidade <ArrowUpRight size={19}/></button><a href="#loja" className="button outline">Explore a Área VIP <ShoppingBag size={17}/></a></div><div className="hero-footnote"><ShieldCheck size={16}/><span>Respeito na base. Liberdade na história.</span></div></div><div className="hero-side">SUBÚRBIO ROLEPLAY / BRASIL</div><div className="hero-bottom"><a href="#experiencias"><span className="scroll-line"/> CONHEÇA O SEU NOVO LUGAR <ChevronDown size={14}/></a><button onClick={()=>setMotion(!motion)} aria-label={motion?'Pausar animações':'Ativar animações'}>{motion?<Pause size={15}/>:<Play size={15}/>} {motion?'AMBIENTE VIVO':'MOVIMENTO PAUSADO'}</button></div></section>
-<div className="ticker" aria-hidden="true"><div>{Array.from({length:4},(_,i)=><span key={i}>SUA HISTÓRIA COMEÇA AQUI <span>✳</span> RESPEITA A QUEBRADA <span>✳</span> SUBÚRBIO RP <span>✳</span></span>)}</div></div>
-<section className="experience section" id="experiencias"><div className="section-heading reveal"><div><div className="eyebrow">01 / VIVA O SUBÚRBIO</div><h2>O seu corre.<br/><span>Do seu jeito.</span></h2></div><p>Cada esquina, uma possibilidade.<br/>Aqui, o próximo capítulo quem escreve é você.</p></div><div className="experience-grid reveal"><article className="experience-card wide"><div className="card-top"><span>01 — CONEXÕES</span><Users size={20}/></div><div><h3>Chegue como visitante.<br/>Fique como família.</h3><p>Encontre sua turma e construa histórias que continuam muito além do jogo.</p></div><button className="text-button" onClick={discord}>Encontre a comunidade <ArrowUpRight size={18}/></button></article><article className="experience-card"><div className="card-top"><span>02 — POSSIBILIDADES</span><MapPin size={20}/></div><div><h3>Uma cidade.<br/>Mil caminhos.</h3><p>Do primeiro emprego ao seu próprio negócio. Escolha quem você quer ser.</p></div><span className="card-label">SEU FUTURO NÃO VEM PRONTO.</span></article><article className="experience-card"><div className="card-top"><span>03 — ESSÊNCIA</span><ShieldCheck size={20}/></div><div><h3>Liberdade com<br/>responsabilidade.</h3><p>O melhor roleplay nasce do respeito. Sua história faz parte de algo maior.</p></div><a className="text-button" href="#duvidas">Antes de chegar <ArrowUpRight size={18}/></a></article></div></section>
-<section className="store section" id="loja"><div className="section-heading reveal"><div><div className="eyebrow">02 / ÁREA VIP</div><h2>Área VIP.<br/><span>Marque sua presença.</span></h2></div><p>Planos e benefícios exclusivos.<br/>Leve a identidade do Subúrbio com você.</p></div><div className="store-toolbar"><div className="filters" role="group" aria-label="Categorias de benefícios VIP">{['Todos',...new Set(products.map(p=>p.category))].map(c=><button key={c} onClick={()=>setCategory(c)} aria-pressed={category===c} className={category===c?'active':''}>{c}{c==='Todos'&&<span>{products.length}</span>}</button>)}</div><span className="demo-label">{catalogMode==='live'?'BENEFÍCIOS VIP':catalogMode==='error'?'TEMPORARIAMENTE INDISPONÍVEL':catalogMode==='loading'?'CARREGANDO CATÁLOGO':'CATÁLOGO DEMONSTRATIVO'}</span></div><div className="product-grid">{catalogMode!=='loading'&&products.filter(p=>category==='Todos'||p.category===category).map(p=><article key={p.id} className={`product product-${p.level}`}><button className="product-visual" aria-label={`Ver detalhes de ${p.name}`} onClick={()=>setSelected(p)}><span className="product-number">{p.level?`0${p.level}`:'+'}</span><span className="product-category">{p.category==='VIPs'?'MEMBRO DA QUEBRADA':p.category==='Carros'?'GARAGEM SUBÚRBIO':p.category==='Casas'?'SEU NOVO ENDEREÇO':'PERSONALIZAÇÃO'}</span><div className="crown-emblem">{p.category==='Carros'?<Car strokeWidth={1.2}/>:p.category==='Casas'?<House strokeWidth={1.2}/>:p.level?<Crown strokeWidth={1.2}/>:<Sparkles strokeWidth={1.2}/>}</div><span className="visual-title">{p.name.replace('VIP ','').toUpperCase()}</span><span className="visual-bottom">SUBÚRBIO RP <ArrowUpRight size={16}/></span></button><div className="product-info"><div className="product-tag">{p.category==='VIPs'?'PLANO VIP':'BENEFÍCIO VIP'} · {p.tag}</div><button className="product-title" onClick={()=>setSelected(p)}>{p.name}</button><p>{p.category==='VIPs'?'Sua presença, em outro nível.':p.category==='Carros'?'O próximo destino é seu.':p.category==='Casas'?'Seu lugar na quebrada.':'Um novo começo para sua história.'}</p><div className="price-row"><div><small>A PARTIR DE</small><strong>{money(p.price)}</strong><span>{validityLabel(p)}</span></div><button onClick={()=>add(p)} aria-label={`Adicionar ${p.name} ao carrinho`} className="add-button"><Plus size={20}/></button></div></div></article>)}</div><p className="store-notice"><ShieldCheck size={16}/> {catalogMode==='live'?'Benefícios oficiais da cidade. Valores e disponibilidade serão conferidos antes do pagamento.':catalogMode==='error'?'Não foi possível carregar os benefícios. Tente novamente em instantes.':'Área VIP em demonstração. Planos, benefícios e preços sujeitos à definição da cidade. Nenhuma cobrança é realizada.'}</p><ContributionNotice/></section>
-{(catalogMode==='demo'||catalogMode==='live')&&<CryptoSection onAdd={add} config={cryptoConfig}/>}
-<section className="community section reveal"><div className="community-inner"><div className="eyebrow">A PRÓXIMA HISTÓRIA PODE SER A SUA</div><h2>DA QUEBRADA<br/><span>PRO MUNDO.</span><ArrowUpRight/></h2><div className="community-bottom"><p>A cidade ganha vida quando você chega.<br/>Cola com a gente e faça parte do Subúrbio.</p><button className="button" onClick={discord}><MessageCircle size={19}/> Fazer parte da comunidade <ArrowUpRight size={18}/></button></div></div></section>
-<section className="faq section" id="duvidas"><div className="faq-heading"><div className="eyebrow">03 / SEM COMPLICAÇÃO</div><h2>Antes de<br/><span>chegar.</span></h2><p>O básico para começar seu corre.</p></div><div className="faq-list">{[['Como começo a jogar no Subúrbio RP?','Tenha uma cópia original do GTA V para PC e o FiveM instalado. Entre no Discord oficial para conhecer as regras, verificar os requisitos de acesso e receber o endereço atualizado da cidade.'],['Preciso de um VIP para jogar?','Os pacotes VIP são opções de apoio à cidade. As condições de acesso e os benefícios finais serão informados pela equipe nos canais oficiais.'],['Como recebo meus benefícios VIP?','Os benefícios e valores são apresentados na Área VIP. O pagamento confirmado e a entrega são etapas diferentes. O pagamento ainda não está disponível; nenhuma cobrança é realizada.'],['Onde encontro as regras e o suporte?','As regras e o atendimento serão disponibilizados no Discord oficial da cidade. Consulte a equipe antes de iniciar sua história ou realizar uma contribuição.']].map(([q,a])=><details key={q}><summary>{q}<Plus size={18}/></summary><p>{a}</p></details>)}</div></section>
-<footer className="footer"><div className="footer-main"><a href="#" className="brand"><Crown/><span>SUBÚRBIO<small>ROLEPLAY</small></span></a><p>Sonhos. Realidade. Conexões. Evolução.</p><a href="#">De volta ao topo <ArrowUpRight size={16}/></a></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Subúrbio RP. Todos os direitos reservados.</span><span>Servidor independente. Sem vínculo com Rockstar Games ou Take-Two.</span><span>FEITO PRA QUEM VIVE O RP.</span></div></footer>
-{toast&&<div className="toast" role="status"><Check size={18}/>{toast}<button aria-label="Fechar notificação" onClick={()=>setToast('')}><X size={16}/></button></div>}
-<dialog aria-label={selected?selected.name:panel==='cart'?'Seu carrinho':'Como entrar na cidade'} ref={dialog} className={panel==='cart'?'dialog drawer':'dialog'} onCancel={close} onClick={e=>{if(e.target===dialog.current)close();}}><div className="dialog-inner"><button autoFocus className="close-dialog icon-button" onClick={close} aria-label="Fechar"><X/></button>{selected&&<><div className="eyebrow">ÁREA VIP / {selected.category.toUpperCase()}</div>{selected.category==='Carros'?<Car className="dialog-crown"/>:selected.category==='Casas'?<House className="dialog-crown"/>:<Crown className="dialog-crown"/>}<h2>{selected.name}</h2><p>{selected.description}</p><ul className="benefits">{selected.features.map(f=><li key={f}><Check size={17}/>{f}</li>)}</ul><div className="detail-price">{money(selected.price)}<small>{' / '+validityLabel(selected)}</small></div><p className="demo-note">{catalogMode==='live'?'Disponibilidade confirmada antes do pagamento.':'Benefício VIP demonstrativo. Benefícios e valores ainda não confirmados.'}</p><button className="button full" onClick={()=>{add(selected);setSelected(null);setPanel('cart');}}>Adicionar ao carrinho <ShoppingBag size={18}/></button></>}{panel==='join'&&<><div className="eyebrow">SEU PRIMEIRO PASSO</div><h2>Seu lugar<br/>é no Subúrbio.</h2><p>Prepare tudo para começar sua história.</p><ol className="join-steps"><li><span>01</span><div><strong>Prepare o jogo</strong><p>GTA V original para PC e FiveM instalado.</p></div></li><li><span>02</span><div><strong>Conheça a comunidade</strong><p>Leia as regras e acompanhe o acesso à cidade pelo Discord.</p></div></li><li><span>03</span><div><strong>Viva seu personagem</strong><p>Entre na cidade e comece seu próximo capítulo.</p></div></li></ol>{site.discordUrl?<a className="button full" href={site.discordUrl} target="_blank" rel="noreferrer">Entrar no Discord <ArrowUpRight size={18}/></a>:<div className="pending"><MessageCircle size={20}/><div><strong>Estamos preparando a sua chegada.</strong><p>O convite oficial do Discord será disponibilizado aqui em breve.</p></div></div>}{site.connectUrl&&<a className="button outline full" href={site.connectUrl}>Conectar à cidade <Gamepad2 size={18}/></a>}</>}{panel==='cart'&&<><div className="eyebrow">VIP + CRYPTO</div><h2>Seu carrinho<span className="cart-heading-count">{count}</span></h2><ContributionNotice compact={checkout}/>{count===0?<div className="empty-cart"><ShoppingBag size={48} strokeWidth={1}/><h3>Seu próximo nível espera.</h3><p>Explore os benefícios VIP e escolha o que combina com você.</p><button className="button full" onClick={()=>{close();document.getElementById('loja')?.scrollIntoView({behavior:'smooth'});}}>Explorar a Área VIP <ArrowRight size={18}/></button></div>:<><div className="cart-items">{cartProducts.filter(p=>cart[p.id]).map(p=><div className="cart-item" key={p.id}><div className={`cart-icon product-${p.level}`}>{p.category==='Carros'?<Car/>:p.category==='Casas'?<House/>:<Crown/>}</div><div className="cart-item-body"><strong>{p.name}</strong><span>{money(p.price)}</span><div className="quantity"><button onClick={()=>change(p.id,-1)} aria-label={`Diminuir quantidade de ${p.name}`}><Minus size={14}/></button><span aria-label="Quantidade">{cart[p.id]}</span><button disabled={cart[p.id]>=10} onClick={()=>change(p.id,1)} aria-label={`Aumentar quantidade de ${p.name}`}><Plus size={14}/></button></div></div><button className="icon-button" aria-label={`Remover ${p.name}`} onClick={()=>change(p.id,-10)}><Trash2 size={17}/></button></div>)}</div><div className="cart-total"><span>Total</span><strong>{money(total)}</strong></div><div className="coupon-field"><label htmlFor="coupon-code">Cupom de desconto</label><div><input id="coupon-code" placeholder="CUPOM15" maxLength={32} value={couponCode} disabled={catalogMode!=='live'} onChange={e=>{setCouponCode(e.target.value.toUpperCase());setCheckout(false);}}/><button className="button small" disabled={catalogMode!=='live'||!couponCode.trim()} onClick={()=>setCheckout(true)}>Aplicar</button></div>{catalogMode!=='live'&&<small>Cupons estarão disponíveis em breve.</small>}</div><p className="demo-note">{catalogMode==='live'?'Total estimado. Confira os valores antes de continuar.':'Carrinho demonstrativo. Nenhuma cobrança será realizada.'}</p><button className="button full" onClick={()=>setCheckout(true)}>Continuar <ArrowRight size={18}/></button>{checkout&&catalogMode==='live'&&<CartQuote cart={cart} couponCode={couponCode}/>}
-{checkout&&catalogMode!=='live'&&<div className="pending" role="status"><ShieldCheck size={24}/><div><strong>A Área VIP está em preparação.</strong><p>O pagamento ainda não está disponível. Seus itens ficam salvos neste navegador para você continuar depois.</p></div></div>}</>}</>}</div></dialog>
-</main>;
+import { REFERRAL_TTL, storedReferral } from '@/lib/affiliate-referral';
+import { HeroRouteMap } from '@/components/hero-route-map';
+import { ContributionNotice } from '@/components/contribution-notice';
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import {
+  ArrowUpRight,
+  ArrowRight,
+  ShoppingBag,
+  Crown,
+  Check,
+  Plus,
+  Minus,
+  X,
+  Gamepad2,
+  MessageCircle,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  MapPin,
+  ChevronDown,
+  Trash2,
+  Play,
+  Pause,
+  Car,
+  House,
+} from 'lucide-react';
+import { products as demoProducts, site, type Product } from '@/lib/site';
+import { catalogSchema } from '@/lib/api/catalog-contracts';
+import { cryptoConfigSchema } from '@/lib/api/cart-contracts';
+import { validityLabel } from '@/lib/validity';
+import { CartQuote } from '@/components/cart-quote';
+import { CryptoSection } from '@/components/crypto-section';
+import { cryptoPreviewFromId } from '@/lib/crypto-preview';
+type ModelContext = {
+  registerTool: (
+    tool: {
+      name: string;
+      description: string;
+      inputSchema: object;
+      annotations: { readOnlyHint: boolean };
+      execute: (input: unknown) => unknown;
+    },
+    options: { signal: AbortSignal },
+  ) => void | Promise<void>;
+};
+const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+type Cart = Record<string, number>;
+export default function Home() {
+  const [products, setProducts] = useState<Product[]>(demoProducts);
+  const [catalogMode, setCatalogMode] = useState<'loading' | 'demo' | 'live' | 'error'>('loading');
+  const [cryptoConfig, setCryptoConfig] = useState<ReturnType<typeof cryptoConfigSchema.parse> | undefined>();
+  const [couponCode, setCouponCode] = useState('');
+  useEffect(() => {
+    const abort = new AbortController();
+    let saved: string | null = null;
+    try {
+      saved = storedReferral(localStorage.getItem('suburbio-referral'));
+    } catch {}
+    const ref = new URLSearchParams(window.location.search).get('ref') ?? saved;
+    if (ref && /^[A-Za-z0-9_-]{3,32}$/.test(ref)) {
+      fetch('/api/affiliate/referral?' + new URLSearchParams({ code: ref }), {
+        signal: abort.signal,
+        cache: 'no-store',
+      })
+        .then(async (r) => {
+          if (!r.ok) throw Error();
+          const value = await r.json();
+          if (abort.signal.aborted || typeof value.code !== 'string' || !/^[A-Z0-9_-]{3,32}$/.test(value.code)) return;
+          setCouponCode((current) => current || value.code);
+          if (new URLSearchParams(window.location.search).has('ref'))
+            try {
+              localStorage.setItem(
+                'suburbio-referral',
+                JSON.stringify({
+                  code: value.code,
+                  expiresAt: Math.min(
+                    Date.now() + REFERRAL_TTL,
+                    value.expiresAt ? Date.parse(value.expiresAt) : Infinity,
+                  ),
+                }),
+              );
+            } catch {}
+        })
+        .catch(() => {});
+    }
+    return () => abort.abort();
+  }, []);
+  const [cart, setCart] = useState<Cart>({});
+  const [loaded, setLoaded] = useState(false);
+  const [category, setCategory] = useState('Todos');
+  const [panel, setPanel] = useState<'cart' | 'join' | null>(null);
+  const [selected, setSelected] = useState<Product | null>(null);
+  const [toast, setToast] = useState('');
+  const [checkout, setCheckout] = useState(false);
+  const [motion, setMotion] = useState(true);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    // Motion is on by default (layout renders data-motion="on"); only the pause button turns it off.
+    document.documentElement.dataset.motion = motion ? 'on' : 'off';
+    return () => {
+      document.documentElement.dataset.motion = 'on';
+    };
+  }, [motion]);
+  useEffect(() => {
+    const abort = new AbortController();
+    void fetch('/api/vip/catalog', { signal: abort.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('catalog unavailable');
+        const body = await response.json();
+        if (abort.signal.aborted) return;
+        let current = demoProducts;
+        if (body.mode === 'live') {
+          const catalog = catalogSchema.parse(body.catalog);
+          setCryptoConfig(cryptoConfigSchema.parse(body.crypto));
+          current = catalog.products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            category: catalog.categories.find((c) => c.id === p.categoryId)?.name ?? 'VIPs',
+            price: p.priceMinor / 100,
+            validityMode: p.validityMode,
+            durationDays: p.durationDays,
+            renewable: p.renewable,
+            tag: 'BENEFÍCIO VIP',
+            description: p.description,
+            features: [],
+            level: 0,
+          }));
+        } else if (body.mode !== 'demo') throw new Error('catalog invalid');
+        setProducts(current);
+        setCatalogMode(body.mode);
+        try {
+          const raw = JSON.parse(localStorage.getItem('suburbio-cart') || '{}');
+          const valid: Cart = {};
+          for (const id of Object.keys(raw).slice(0, 50)) {
+            if (
+              (current.some((p) => p.id === id) || cryptoPreviewFromId(id)) &&
+              Number.isInteger(raw[id]) &&
+              raw[id] > 0
+            )
+              valid[id] = Math.min(raw[id], 10);
+          }
+          setCart(valid);
+        } catch {}
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) {
+          setProducts([]);
+          setCatalogMode('error');
+        }
+      });
+    return () => abort.abort();
+  }, []);
+  useEffect(() => {
+    if (loaded) {
+      try {
+        localStorage.setItem('suburbio-cart', JSON.stringify(cart));
+      } catch {}
+    }
+  }, [cart, loaded]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(''), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  useEffect(() => {
+    if (panel || selected) {
+      dialog.current?.showModal();
+      document.body.style.overflow = 'hidden';
+    } else {
+      dialog.current?.close();
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [panel, selected]);
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add('visible');
+        }),
+      { threshold: 0.08 },
+    );
+    document.querySelectorAll('.reveal').forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+  useEffect(() => {
+    const context = (document as Document & { modelContext?: ModelContext }).modelContext;
+    if (!context?.registerTool) return;
+    const lifecycle = new AbortController();
+    try {
+      void Promise.resolve(
+        context.registerTool(
+          {
+            name: 'filter_store_catalog',
+            description:
+              'Filter the visible demo VIP benefits by category. Does not place an order or charge a payment.',
+            inputSchema: {
+              type: 'object',
+              properties: { category: { type: 'string', enum: ['Todos', 'Carros', 'Casas', 'VIPs', 'Itens VIP'] } },
+              required: ['category'],
+              additionalProperties: false,
+            },
+            annotations: { readOnlyHint: false },
+            execute(input) {
+              if (
+                !input ||
+                typeof input !== 'object' ||
+                !('category' in input) ||
+                !['Todos', 'Carros', 'Casas', 'VIPs', 'Itens VIP'].includes(String(input.category))
+              )
+                throw new Error('Categoria inválida');
+              const next = String(input.category);
+              flushSync(() => setCategory(next));
+              return {
+                category: next,
+                products: products
+                  .filter((p) => next === 'Todos' || p.category === next)
+                  .map((p) => ({ id: p.id, name: p.name, price: p.price, currency: 'BRL', demo: true })),
+              };
+            },
+          },
+          { signal: lifecycle.signal },
+        ),
+      ).catch(() => {});
+    } catch {}
+    return () => lifecycle.abort();
+  }, [products]);
+  const cartProducts = [
+    ...products,
+    ...Object.keys(cart)
+      .map(cryptoPreviewFromId)
+      .filter((p): p is Product => p !== null),
+  ];
+  const count = Object.values(cart).reduce((a, b) => a + b, 0);
+  useEffect(() => {
+    const open = () => setPanel('cart');
+    if (new URLSearchParams(window.location.search).get('cart') === 'open') {
+      open();
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    }
+    window.addEventListener('suburbio:open-cart', open);
+    return () => window.removeEventListener('suburbio:open-cart', open);
+  }, []);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('suburbio:cart-count', { detail: count }));
+  }, [count]);
+  const total = cartProducts.reduce((sum, p) => sum + p.price * (cart[p.id] || 0), 0);
+  function add(p: Product) {
+    if (!cart[p.id] && Object.keys(cart).length >= 50) {
+      setToast('Limite de 50 itens diferentes por carrinho.');
+      return;
+    }
+    setCheckout(false);
+    setCart((c) => ({ ...c, [p.id]: Math.min((c[p.id] || 0) + 1, 10) }));
+    setToast(`${p.name} adicionado ao carrinho`);
+  }
+  function change(id: string, d: number) {
+    setCart((c) => {
+      const next = { ...c, [id]: Math.max(0, Math.min((c[id] || 0) + d, 10)) };
+      if (!next[id]) delete next[id];
+      return next;
+    });
+    setCheckout(false);
+  }
+  function close() {
+    setPanel(null);
+    setSelected(null);
+    setCheckout(false);
+  }
+  function discord() {
+    if (site.discordUrl) window.open(site.discordUrl, '_blank', 'noopener,noreferrer');
+    else setPanel('join');
+  }
+  return (
+    <main className={motion ? '' : 'paused'}>
+      <section className="hero" id="cidade">
+        <div className="hero-grid" />
+        <div className="hero-content">
+          <div className="eyebrow">
+            <span className="short-line" /> BEM-VINDO AO SEU PRÓXIMO CAPÍTULO
+          </div>
+          <h1>
+            A RUA É NOSSA.
+            <br />A HISTÓRIA
+            <br />É <span>SUA.</span>
+            <span className="heading-star">✳</span>
+          </h1>
+          <p>
+            Mais que uma cidade, um lugar pra pertencer.
+            <br />
+            Encontre sua família, conquiste seu espaço
+            <br className="desktop" /> e viva o seu corre.
+          </p>
+          <div className="hero-buttons">
+            <button className="button" onClick={() => setPanel('join')}>
+              <Gamepad2 size={20} /> Bora pra cidade <ArrowUpRight size={19} />
+            </button>
+            <a href="#loja" className="button outline">
+              Explore a Área VIP <ShoppingBag size={17} />
+            </a>
+          </div>
+          <div className="hero-footnote">
+            <ShieldCheck size={16} />
+            <span>Respeito na base. Liberdade na história.</span>
+          </div>
+        </div>
+        <HeroRouteMap />
+        <div className="hero-side">SUBÚRBIO ROLEPLAY / BRASIL</div>
+        <div className="hero-bottom">
+          <a href="#experiencias">
+            <span className="scroll-line" /> CONHEÇA O SEU NOVO LUGAR <ChevronDown size={14} />
+          </a>
+          <button
+            onClick={() => setMotion(!motion)}
+            aria-pressed={motion}
+            aria-label={motion ? 'Pausar animações' : 'Ativar animações'}
+          >
+            {motion ? <Pause size={15} /> : <Play size={15} />} {motion ? 'AMBIENTE VIVO' : 'MOVIMENTO PAUSADO'}
+          </button>
+        </div>
+      </section>
+      <div className="ticker" aria-hidden="true">
+        <div>
+          {Array.from({ length: 4 }, (_, i) => (
+            <span key={i}>
+              SUA HISTÓRIA COMEÇA AQUI <span>✳</span> RESPEITA A QUEBRADA <span>✳</span> SUBÚRBIO RP <span>✳</span>
+            </span>
+          ))}
+        </div>
+      </div>
+      <section className="experience section" id="experiencias">
+        <div className="section-heading reveal">
+          <div>
+            <div className="eyebrow">01 / VIVA O SUBÚRBIO</div>
+            <h2>
+              O seu corre.
+              <br />
+              <span>Do seu jeito.</span>
+            </h2>
+          </div>
+          <p>
+            Cada esquina, uma possibilidade.
+            <br />
+            Aqui, o próximo capítulo quem escreve é você.
+          </p>
+        </div>
+        <div className="experience-grid reveal">
+          <article className="experience-card wide">
+            <div className="card-top">
+              <span>01 — CONEXÕES</span>
+              <Users size={20} />
+            </div>
+            <div>
+              <h3>
+                Chegue como visitante.
+                <br />
+                Fique como família.
+              </h3>
+              <p>Encontre sua turma e construa histórias que continuam muito além do jogo.</p>
+            </div>
+            <button className="text-button" onClick={discord}>
+              Encontre a comunidade <ArrowUpRight size={18} />
+            </button>
+          </article>
+          <article className="experience-card">
+            <div className="card-top">
+              <span>02 — POSSIBILIDADES</span>
+              <MapPin size={20} />
+            </div>
+            <div>
+              <h3>
+                Uma cidade.
+                <br />
+                Mil caminhos.
+              </h3>
+              <p>Do primeiro emprego ao seu próprio negócio. Escolha quem você quer ser.</p>
+            </div>
+            <span className="card-label">SEU FUTURO NÃO VEM PRONTO.</span>
+          </article>
+          <article className="experience-card">
+            <div className="card-top">
+              <span>03 — ESSÊNCIA</span>
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h3>
+                Liberdade com
+                <br />
+                responsabilidade.
+              </h3>
+              <p>O melhor roleplay nasce do respeito. Sua história faz parte de algo maior.</p>
+            </div>
+            <a className="text-button" href="#duvidas">
+              Antes de chegar <ArrowUpRight size={18} />
+            </a>
+          </article>
+        </div>
+      </section>
+      <section className="store section" id="loja">
+        <div className="section-heading reveal">
+          <div>
+            <div className="eyebrow">02 / ÁREA VIP</div>
+            <h2>
+              Área VIP.
+              <br />
+              <span>Marque sua presença.</span>
+            </h2>
+          </div>
+          <p>
+            Planos e benefícios exclusivos.
+            <br />
+            Leve a identidade do Subúrbio com você.
+          </p>
+        </div>
+        <div className="store-toolbar">
+          <div className="filters" role="group" aria-label="Categorias de benefícios VIP">
+            {['Todos', ...new Set(products.map((p) => p.category))].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                aria-pressed={category === c}
+                className={category === c ? 'active' : ''}
+              >
+                {c}
+                {c === 'Todos' && <span>{products.length}</span>}
+              </button>
+            ))}
+          </div>
+          <span className="demo-label">
+            {catalogMode === 'live'
+              ? 'BENEFÍCIOS VIP'
+              : catalogMode === 'error'
+                ? 'TEMPORARIAMENTE INDISPONÍVEL'
+                : catalogMode === 'loading'
+                  ? 'CARREGANDO CATÁLOGO'
+                  : 'CATÁLOGO DEMONSTRATIVO'}
+          </span>
+        </div>
+        <div className="product-grid">
+          {catalogMode !== 'loading' &&
+            products
+              .filter((p) => category === 'Todos' || p.category === category)
+              .map((p) => (
+                <article key={p.id} className={`product product-${p.level}`}>
+                  <button
+                    className="product-visual"
+                    aria-label={`Ver detalhes de ${p.name}`}
+                    onClick={() => setSelected(p)}
+                  >
+                    <span className="product-number">{p.level ? `0${p.level}` : '+'}</span>
+                    <span className="product-category">
+                      {p.category === 'VIPs'
+                        ? 'MEMBRO DA QUEBRADA'
+                        : p.category === 'Carros'
+                          ? 'GARAGEM SUBÚRBIO'
+                          : p.category === 'Casas'
+                            ? 'SEU NOVO ENDEREÇO'
+                            : 'PERSONALIZAÇÃO'}
+                    </span>
+                    <div className="crown-emblem">
+                      {p.category === 'Carros' ? (
+                        <Car strokeWidth={1.2} />
+                      ) : p.category === 'Casas' ? (
+                        <House strokeWidth={1.2} />
+                      ) : p.level ? (
+                        <Crown strokeWidth={1.2} />
+                      ) : (
+                        <Sparkles strokeWidth={1.2} />
+                      )}
+                    </div>
+                    <span className="visual-title">{p.name.replace('VIP ', '').toUpperCase()}</span>
+                    <span className="visual-bottom">
+                      SUBÚRBIO RP <ArrowUpRight size={16} />
+                    </span>
+                  </button>
+                  <div className="product-info">
+                    <div className="product-tag">
+                      {p.category === 'VIPs' ? 'PLANO VIP' : 'BENEFÍCIO VIP'} · {p.tag}
+                    </div>
+                    <button className="product-title" onClick={() => setSelected(p)}>
+                      {p.name}
+                    </button>
+                    <p>
+                      {p.category === 'VIPs'
+                        ? 'Sua presença, em outro nível.'
+                        : p.category === 'Carros'
+                          ? 'O próximo destino é seu.'
+                          : p.category === 'Casas'
+                            ? 'Seu lugar na quebrada.'
+                            : 'Um novo começo para sua história.'}
+                    </p>
+                    <div className="price-row">
+                      <div>
+                        <small>A PARTIR DE</small>
+                        <strong>{money(p.price)}</strong>
+                        <span>{validityLabel(p)}</span>
+                      </div>
+                      <button
+                        onClick={() => add(p)}
+                        aria-label={`Adicionar ${p.name} ao carrinho`}
+                        className="add-button"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+        </div>
+        <p className="store-notice">
+          <ShieldCheck size={16} />{' '}
+          {catalogMode === 'live'
+            ? 'Benefícios oficiais da cidade. Valores e disponibilidade serão conferidos antes do pagamento.'
+            : catalogMode === 'error'
+              ? 'Não foi possível carregar os benefícios. Tente novamente em instantes.'
+              : 'Área VIP em demonstração. Planos, benefícios e preços sujeitos à definição da cidade. Nenhuma cobrança é realizada.'}
+        </p>
+        <ContributionNotice />
+      </section>
+      {(catalogMode === 'demo' || catalogMode === 'live') && <CryptoSection onAdd={add} config={cryptoConfig} />}
+      <section className="community section reveal">
+        <div className="community-inner">
+          <div className="eyebrow">A PRÓXIMA HISTÓRIA PODE SER A SUA</div>
+          <h2>
+            DA QUEBRADA
+            <br />
+            <span>PRO MUNDO.</span>
+            <ArrowUpRight />
+          </h2>
+          <div className="community-bottom">
+            <p>
+              A cidade ganha vida quando você chega.
+              <br />
+              Cola com a gente e faça parte do Subúrbio.
+            </p>
+            <button className="button" onClick={discord}>
+              <MessageCircle size={19} /> Fazer parte da comunidade <ArrowUpRight size={18} />
+            </button>
+          </div>
+        </div>
+      </section>
+      <section className="faq section" id="duvidas">
+        <div className="faq-heading">
+          <div className="eyebrow">03 / SEM COMPLICAÇÃO</div>
+          <h2>
+            Antes de
+            <br />
+            <span>chegar.</span>
+          </h2>
+          <p>O básico para começar seu corre.</p>
+        </div>
+        <div className="faq-list">
+          {[
+            [
+              'Como começo a jogar no Subúrbio RP?',
+              'Tenha uma cópia original do GTA V para PC e o FiveM instalado. Entre no Discord oficial para conhecer as regras, verificar os requisitos de acesso e receber o endereço atualizado da cidade.',
+            ],
+            [
+              'Preciso de um VIP para jogar?',
+              'Os pacotes VIP são opções de apoio à cidade. As condições de acesso e os benefícios finais serão informados pela equipe nos canais oficiais.',
+            ],
+            [
+              'Como recebo meus benefícios VIP?',
+              'Os benefícios e valores são apresentados na Área VIP. O pagamento confirmado e a entrega são etapas diferentes. O pagamento ainda não está disponível; nenhuma cobrança é realizada.',
+            ],
+            [
+              'Onde encontro as regras e o suporte?',
+              'As regras e o atendimento serão disponibilizados no Discord oficial da cidade. Consulte a equipe antes de iniciar sua história ou realizar uma contribuição.',
+            ],
+          ].map(([q, a]) => (
+            <details key={q}>
+              <summary>
+                {q}
+                <Plus size={18} />
+              </summary>
+              <p>{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+      <footer className="footer">
+        <div className="footer-main">
+          <a href="#" className="brand">
+            <Crown />
+            <span>
+              SUBÚRBIO<small>ROLEPLAY</small>
+            </span>
+          </a>
+          <p>Sonhos. Realidade. Conexões. Evolução.</p>
+          <a href="#">
+            De volta ao topo <ArrowUpRight size={16} />
+          </a>
+        </div>
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} Subúrbio RP. Todos os direitos reservados.</span>
+          <span>Servidor independente. Sem vínculo com Rockstar Games ou Take-Two.</span>
+          <span>FEITO PRA QUEM VIVE O RP.</span>
+        </div>
+      </footer>
+      {toast && (
+        <div className="toast" role="status">
+          <Check size={18} />
+          {toast}
+          <button aria-label="Fechar notificação" onClick={() => setToast('')}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      <dialog
+        aria-label={selected ? selected.name : panel === 'cart' ? 'Seu carrinho' : 'Como entrar na cidade'}
+        ref={dialog}
+        className={panel === 'cart' ? 'dialog drawer' : 'dialog'}
+        onCancel={close}
+        onClick={(e) => {
+          if (e.target === dialog.current) close();
+        }}
+      >
+        <div className="dialog-inner">
+          <button autoFocus className="close-dialog icon-button" onClick={close} aria-label="Fechar">
+            <X />
+          </button>
+          {selected && (
+            <>
+              <div className="eyebrow">ÁREA VIP / {selected.category.toUpperCase()}</div>
+              {selected.category === 'Carros' ? (
+                <Car className="dialog-crown" />
+              ) : selected.category === 'Casas' ? (
+                <House className="dialog-crown" />
+              ) : (
+                <Crown className="dialog-crown" />
+              )}
+              <h2>{selected.name}</h2>
+              <p>{selected.description}</p>
+              <ul className="benefits">
+                {selected.features.map((f) => (
+                  <li key={f}>
+                    <Check size={17} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="detail-price">
+                {money(selected.price)}
+                <small>{' / ' + validityLabel(selected)}</small>
+              </div>
+              <p className="demo-note">
+                {catalogMode === 'live'
+                  ? 'Disponibilidade confirmada antes do pagamento.'
+                  : 'Benefício VIP demonstrativo. Benefícios e valores ainda não confirmados.'}
+              </p>
+              <button
+                className="button full"
+                onClick={() => {
+                  add(selected);
+                  setSelected(null);
+                  setPanel('cart');
+                }}
+              >
+                Adicionar ao carrinho <ShoppingBag size={18} />
+              </button>
+            </>
+          )}
+          {panel === 'join' && (
+            <>
+              <div className="eyebrow">SEU PRIMEIRO PASSO</div>
+              <h2>
+                Seu lugar
+                <br />é no Subúrbio.
+              </h2>
+              <p>Prepare tudo para começar sua história.</p>
+              <ol className="join-steps">
+                <li>
+                  <span>01</span>
+                  <div>
+                    <strong>Prepare o jogo</strong>
+                    <p>GTA V original para PC e FiveM instalado.</p>
+                  </div>
+                </li>
+                <li>
+                  <span>02</span>
+                  <div>
+                    <strong>Conheça a comunidade</strong>
+                    <p>Leia as regras e acompanhe o acesso à cidade pelo Discord.</p>
+                  </div>
+                </li>
+                <li>
+                  <span>03</span>
+                  <div>
+                    <strong>Viva seu personagem</strong>
+                    <p>Entre na cidade e comece seu próximo capítulo.</p>
+                  </div>
+                </li>
+              </ol>
+              {site.discordUrl ? (
+                <a className="button full" href={site.discordUrl} target="_blank" rel="noreferrer">
+                  Entrar no Discord <ArrowUpRight size={18} />
+                </a>
+              ) : (
+                <div className="pending">
+                  <MessageCircle size={20} />
+                  <div>
+                    <strong>Estamos preparando a sua chegada.</strong>
+                    <p>O convite oficial do Discord será disponibilizado aqui em breve.</p>
+                  </div>
+                </div>
+              )}
+              {site.connectUrl && (
+                <a className="button outline full" href={site.connectUrl}>
+                  Conectar à cidade <Gamepad2 size={18} />
+                </a>
+              )}
+            </>
+          )}
+          {panel === 'cart' && (
+            <>
+              <div className="eyebrow">VIP + CRYPTO</div>
+              <h2>
+                Seu carrinho<span className="cart-heading-count">{count}</span>
+              </h2>
+              <ContributionNotice compact={checkout} />
+              {count === 0 ? (
+                <div className="empty-cart">
+                  <ShoppingBag size={48} strokeWidth={1} />
+                  <h3>Seu próximo nível espera.</h3>
+                  <p>Explore os benefícios VIP e escolha o que combina com você.</p>
+                  <button
+                    className="button full"
+                    onClick={() => {
+                      close();
+                      document.getElementById('loja')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    Explorar a Área VIP <ArrowRight size={18} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="cart-items">
+                    {cartProducts
+                      .filter((p) => cart[p.id])
+                      .map((p) => (
+                        <div className="cart-item" key={p.id}>
+                          <div className={`cart-icon product-${p.level}`}>
+                            {p.category === 'Carros' ? <Car /> : p.category === 'Casas' ? <House /> : <Crown />}
+                          </div>
+                          <div className="cart-item-body">
+                            <strong>{p.name}</strong>
+                            <span>{money(p.price)}</span>
+                            <div className="quantity">
+                              <button onClick={() => change(p.id, -1)} aria-label={`Diminuir quantidade de ${p.name}`}>
+                                <Minus size={14} />
+                              </button>
+                              <span aria-label="Quantidade">{cart[p.id]}</span>
+                              <button
+                                disabled={cart[p.id] >= 10}
+                                onClick={() => change(p.id, 1)}
+                                aria-label={`Aumentar quantidade de ${p.name}`}
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <button
+                            className="icon-button"
+                            aria-label={`Remover ${p.name}`}
+                            onClick={() => change(p.id, -10)}
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                  <div className="cart-total">
+                    <span>Total</span>
+                    <strong>{money(total)}</strong>
+                  </div>
+                  <div className="coupon-field">
+                    <label htmlFor="coupon-code">Cupom de desconto</label>
+                    <div>
+                      <input
+                        id="coupon-code"
+                        placeholder="CUPOM15"
+                        maxLength={32}
+                        value={couponCode}
+                        disabled={catalogMode !== 'live'}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value.toUpperCase());
+                          setCheckout(false);
+                        }}
+                      />
+                      <button
+                        className="button small"
+                        disabled={catalogMode !== 'live' || !couponCode.trim()}
+                        onClick={() => setCheckout(true)}
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                    {catalogMode !== 'live' && <small>Cupons estarão disponíveis em breve.</small>}
+                  </div>
+                  <p className="demo-note">
+                    {catalogMode === 'live'
+                      ? 'Total estimado. Confira os valores antes de continuar.'
+                      : 'Carrinho demonstrativo. Nenhuma cobrança será realizada.'}
+                  </p>
+                  <button className="button full" onClick={() => setCheckout(true)}>
+                    Continuar <ArrowRight size={18} />
+                  </button>
+                  {checkout && catalogMode === 'live' && <CartQuote cart={cart} couponCode={couponCode} />}
+                  {checkout && catalogMode !== 'live' && (
+                    <div className="pending" role="status">
+                      <ShieldCheck size={24} />
+                      <div>
+                        <strong>A Área VIP está em preparação.</strong>
+                        <p>
+                          O pagamento ainda não está disponível. Seus itens ficam salvos neste navegador para você
+                          continuar depois.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </dialog>
+    </main>
+  );
 }

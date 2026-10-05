@@ -11,22 +11,34 @@
     "lint": "eslint app components lib auth.ts instrumentation.ts tests --max-warnings=0",
     "test:watch": "vitest",
     "verify:client": "node scripts/verify-client.mjs",
-    "test:http": "node --test --test-concurrency=1 tests/http.smoke.mjs"
+    "test:http": "node --test --test-concurrency=1 tests/http.smoke.mjs",
+    "test:ui": "node tests/citizen.browser.mjs",
+    "test:affiliate-ui": "node tests/affiliate.browser.mjs",
+    "format": "prettier --write app components lib tests scripts auth.ts instrumentation.ts next.config.ts",
+    "format:check": "prettier --check app components lib tests scripts auth.ts instrumentation.ts next.config.ts"
   },
   "dependencies": {
+    "livekit-client": "^2.22.3",
+    "livekit-server-sdk": "^2.19.1",
     "lucide-react": "^0.468.0",
     "next": "^16.2.0",
     "next-auth": "5.0.0-beta.32",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "redis": "^6.2.1",
     "server-only": "0.0.1",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "10.11.0",
+    "jsdom": "^30.1.1",
+    "prettier": "^3.9.9",
     "typescript": "^5.7.0",
     "typescript-eslint": "8.70.1",
     "vitest": "5.0.2"

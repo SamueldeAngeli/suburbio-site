@@ -1,0 +1,267 @@
+.card {
+  position: absolute;
+  right: 6%;
+  top: 56px;
+  width: 43%;
+  max-width: 640px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #65ceff30;
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 70% 30%, #12304480, transparent 65%), #0a141e;
+  box-shadow: 0 26px 70px #0004;
+  color: #daeff9;
+  isolation: isolate;
+  contain: layout paint;
+}
+.top {
+  position: absolute;
+  z-index: 1;
+  top: 22px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 8px;
+  letter-spacing: 1.7px;
+  color: #8ba8b9;
+}
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #66d7ff35;
+  background: #102633;
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: 10px;
+  color: #b9efff;
+  letter-spacing: 2px;
+}
+.badge i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #65dcff;
+}
+.map {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 440px;
+  margin-top: 26px;
+  margin-bottom: -36px;
+  mask-image: linear-gradient(#000 80%, transparent);
+}
+/* Shared path and 9s clock: reveal, 6.3s journey, arrival, hold, fade. */
+.route,
+.routeGlow {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: routeDraw 9s linear infinite;
+}
+.routeGlow {
+  animation-name: routeGlowDraw;
+}
+.travelerMotion {
+  offset-path: var(--route-path);
+  offset-anchor: 0px 0px;
+  offset-rotate: 0deg;
+  animation: travel 9s linear infinite;
+}
+.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: destinationPulse 9s linear infinite;
+}
+.caption {
+  position: relative;
+  padding: 0 26px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.caption div {
+  display: grid;
+  gap: 9px;
+}
+.caption span:not(.arrow) {
+  font-size: 8px;
+  letter-spacing: 2.2px;
+  color: #76a3b9;
+}
+.caption strong {
+  font-size: clamp(19px, 2.2vw, 31px);
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.arrow {
+  font-size: 30px;
+  color: #65dcff;
+}
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #63bddd1c;
+  padding: 15px 26px;
+  font-size: 7px;
+  letter-spacing: 1.6px;
+  color: #7094a9;
+}
+@keyframes routeDraw {
+  0%,
+  6% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  7% {
+    opacity: 1;
+  }
+  76%,
+  92% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes routeGlowDraw {
+  0%,
+  6% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  7% {
+    opacity: 0.08;
+  }
+  76%,
+  92% {
+    stroke-dashoffset: 0;
+    opacity: 0.08;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  6% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  76%,
+  80% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  88%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes destinationPulse {
+  0%,
+  75% {
+    transform: scale(0.65);
+    opacity: 0;
+  }
+  76% {
+    transform: scale(0.65);
+    opacity: 0.7;
+  }
+  90%,
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+@media (max-width: 1100px) {
+  .card {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: auto;
+    max-width: 560px;
+    margin: 0 6% 90px;
+  }
+  .map {
+    max-height: 370px;
+  }
+  .detail {
+    display: none;
+  }
+  .caption strong {
+    font-size: 28px;
+  }
+}
+@media (max-width: 520px) {
+  .card {
+    border-radius: 12px;
+    margin-bottom: 86px;
+  }
+  .map {
+    margin-top: 28px;
+    max-height: 290px;
+    margin-bottom: -15px;
+  }
+  .top {
+    top: 16px;
+    left: 18px;
+    right: 18px;
+  }
+  .top > span:last-child {
+    font-size: 6px;
+    letter-spacing: 1px;
+  }
+  .blocks {
+    opacity: 0.55;
+  }
+  .travelerHalo {
+    display: none;
+  }
+  .caption {
+    padding: 0 18px 18px;
+  }
+  .caption strong {
+    font-size: 23px;
+  }
+  .bottom {
+    padding: 12px 18px;
+    font-size: 6px;
+    letter-spacing: 1px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion='on'])) .route,
+  :global(html:not([data-motion='on'])) .routeGlow,
+  :global(html:not([data-motion='on'])) .travelerMotion,
+  :global(html:not([data-motion='on'])) .pulse {
+    animation: none;
+  }
+  :global(html:not([data-motion='on'])) .route,
+  :global(html:not([data-motion='on'])) .routeGlow {
+    stroke-dashoffset: 0;
+  }
+  :global(html:not([data-motion='on'])) .routeGlow {
+    opacity: 0.08;
+  }
+  :global(html:not([data-motion='on'])) .travelerMotion {
+    display: none;
+  }
+  :global(html:not([data-motion='on'])) .pulse {
+    opacity: 0.35;
+    transform: none;
+  }
+}

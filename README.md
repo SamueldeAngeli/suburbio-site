@@ -9,15 +9,15 @@ npm install
 npm run dev
 ```
 
-Use `npm run dev -- --port 3001` quando a API estiver na porta 3000. A porta pode ser escolhida no ambiente/serviço. A versão com autenticação e painel exige Node.js: `npm run build` e `npm run start -- --port 3001`. Não use o antigo `out/` para esta versão.
+Em desenvolvimento o site usa a porta 3002 e a API a 3000. Produção: `npm run build`, depois `pm2 start ecosystem.config.cjs` (127.0.0.1:3002 atrás do proxy HTTPS); veja [deploy](docs/DEPLOYMENT.md).
 
 ## Administração e integração
 
-Next.js 16.3.5 preservado, com Auth.js/Discord, BFF HMAC v0.3 e telas administrativas. Consulte [arquitetura](docs/SITE_ARCHITECTURE.md), [lacunas da API](docs/API_GAPS.md), [permissões](docs/ADMIN_PERMISSIONS.md), [deploy Windows](docs/DEPLOYMENT.md) e [auditoria de produção](PRODUCTION_AUDIT.md).
+Next.js 16.3.5 preservado, com Auth.js/Discord, BFF HMAC v0.3 e telas administrativas. Consulte [arquitetura](docs/ARCHITECTURE.md), [ambiente](docs/ENVIRONMENT.md), [segurança](docs/SECURITY.md), [deploy](docs/DEPLOYMENT.md), [operação](docs/OPERATIONS.md), [testes](docs/TESTING.md), [checklist de produção](docs/PRODUCTION_CHECKLIST.md), [lacunas da API](docs/API_GAPS.md) e [permissões](docs/ADMIN_PERMISSIONS.md).
 
 Copie `.env.example` para `.env.local` e configure os grupos de variáveis antes de habilitá-los. O login Discord está implementado, mas não homologado com credenciais reais. A API v0.3 expõe resolução institucional e catálogo. `/admin` exige configuração OAuth/HMAC e autorização efetiva da API. Nunca conceda owner no frontend para contornar isso.
 
-Verificação: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `npm run verify:client`. Testes não usam banco, contas reais nem pagamentos.
+Verificação: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run verify:client`, `npm run test:http` (detalhes em [testes](docs/TESTING.md)). Testes não usam banco, contas reais nem pagamentos.
 
 ## Personalizar
 
@@ -50,4 +50,4 @@ HTML semântico, controles com nomes acessíveis, foco visível e diálogos nati
 
 Em navegadores compatíveis, a ferramenta WebMCP `filter_store_catalog` altera o mesmo filtro visível da loja e valida as categorias recebidas.
 
-Continuação: [estado por fase](docs/CONTINUATION_PROGRESS.md), [catálogo](docs/PRODUCT_CATALOG.md) e [relatório do marco](docs/CONTINUATION_REPORT.md). Mercado Pago escolhido; checkout real ainda não habilitado.
+Catálogo: [PRODUCT_CATALOG.md](docs/PRODUCT_CATALOG.md). Relatórios de fases anteriores: `docs/history/` (não normativos). O checkout com Mercado Pago está implementado na API e só é habilitado depois da homologação descrita no [checklist](docs/PRODUCTION_CHECKLIST.md).

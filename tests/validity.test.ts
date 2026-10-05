@@ -1,12 +1,54 @@
-import {it,expect} from 'vitest';
-import {productInput} from '@/lib/api/catalog-contracts';
-import {validityLabel} from '@/lib/validity';
-import {remainingLabel} from '@/lib/entitlements';
-import {playerId} from './fixtures';
-const product={name:'Veículo temporário',slug:'veiculo',description:'',categoryId:playerId,imageUrl:'',status:'active',displayOrder:0,salesChannels:['SITE_VIP'],priceCrypto:0,priceMinor:100,stockMode:'UNLIMITED',stockQuantity:0,delivery:{deliveryType:'VEHICLE',deliveryPayload:{vehicleModel:'sultan'}},validityMode:'DURATION',durationDays:30,renewable:true};
-it('produto temporário exige inteiro entre 1 e 3650',()=>{expect(productInput.safeParse(product).success).toBe(true);for(const durationDays of [null,undefined,0,-1,1.5,3651])expect(productInput.safeParse({...product,durationDays}).success).toBe(false);});
-it('produto permanente dispensa duração e não aceita renovação',()=>{expect(productInput.safeParse({...product,validityMode:'PERMANENT',durationDays:null,renewable:false}).success).toBe(true);expect(productInput.safeParse({...product,validityMode:'PERMANENT'}).success).toBe(false);});
-it('propriedade possui entrega própria e mesma configuração de validade',()=>{expect(productInput.safeParse({...product,delivery:{deliveryType:'PROPERTY',deliveryPayload:{propertyCode:'casa_01'}}}).success).toBe(true);});
-it('rótulo não infere validade pelo tipo VIP ou carro',()=>{expect(validityLabel({validityMode:'PERMANENT',durationDays:null})).toBe('Permanente');expect(validityLabel({validityMode:'DURATION',durationDays:60})).toBe('60 dias');});
-it('benefício pendente não exibe contagem de validade',()=>expect(remainingLabel('PENDING',null,'2026-10-01T00:00:00Z')).toBe('Começa após a ativação'));
-it('tempo restante trata permanente, expirado e revogado',()=>{expect(remainingLabel('ACTIVE',null,'2026-10-01T00:00:00Z')).toBe('Permanente');expect(remainingLabel('ACTIVE','2026-10-19T00:00:00Z','2026-10-01T00:00:00Z')).toBe('Expira em 18 dias');expect(remainingLabel('EXPIRED','2026-09-01T00:00:00Z','2026-10-01T00:00:00Z')).toBe('Prazo encerrado');expect(remainingLabel('REVOKED',null,'2026-10-01T00:00:00Z')).toBe('Benefício revogado');});
+import { it, expect } from 'vitest';
+import { productInput } from '@/lib/api/catalog-contracts';
+import { validityLabel } from '@/lib/validity';
+import { remainingLabel } from '@/lib/entitlements';
+import { playerId } from './fixtures';
+const product = {
+  name: 'Veículo temporário',
+  slug: 'veiculo',
+  description: '',
+  categoryId: playerId,
+  imageUrl: '',
+  status: 'active',
+  displayOrder: 0,
+  salesChannels: ['SITE_VIP'],
+  priceCrypto: 0,
+  priceMinor: 100,
+  stockMode: 'UNLIMITED',
+  stockQuantity: 0,
+  delivery: { deliveryType: 'VEHICLE', deliveryPayload: { vehicleModel: 'sultan' } },
+  validityMode: 'DURATION',
+  durationDays: 30,
+  renewable: true,
+};
+it('produto temporário exige inteiro entre 1 e 3650', () => {
+  expect(productInput.safeParse(product).success).toBe(true);
+  for (const durationDays of [null, undefined, 0, -1, 1.5, 3651])
+    expect(productInput.safeParse({ ...product, durationDays }).success).toBe(false);
+});
+it('produto permanente dispensa duração e não aceita renovação', () => {
+  expect(
+    productInput.safeParse({ ...product, validityMode: 'PERMANENT', durationDays: null, renewable: false }).success,
+  ).toBe(true);
+  expect(productInput.safeParse({ ...product, validityMode: 'PERMANENT' }).success).toBe(false);
+});
+it('propriedade possui entrega própria e mesma configuração de validade', () => {
+  expect(
+    productInput.safeParse({
+      ...product,
+      delivery: { deliveryType: 'PROPERTY', deliveryPayload: { propertyCode: 'casa_01' } },
+    }).success,
+  ).toBe(true);
+});
+it('rótulo não infere validade pelo tipo VIP ou carro', () => {
+  expect(validityLabel({ validityMode: 'PERMANENT', durationDays: null })).toBe('Permanente');
+  expect(validityLabel({ validityMode: 'DURATION', durationDays: 60 })).toBe('60 dias');
+});
+it('benefício pendente não exibe contagem de validade', () =>
+  expect(remainingLabel('PENDING', null, '2026-10-01T00:00:00Z')).toBe('Começa após a ativação'));
+it('tempo restante trata permanente, expirado e revogado', () => {
+  expect(remainingLabel('ACTIVE', null, '2026-10-01T00:00:00Z')).toBe('Permanente');
+  expect(remainingLabel('ACTIVE', '2026-10-19T00:00:00Z', '2026-10-01T00:00:00Z')).toBe('Expira em 18 dias');
+  expect(remainingLabel('EXPIRED', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')).toBe('Prazo encerrado');
+  expect(remainingLabel('REVOKED', null, '2026-10-01T00:00:00Z')).toBe('Benefício revogado');
+});

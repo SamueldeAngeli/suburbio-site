@@ -12,7 +12,7 @@ export async function loginDiscord(data: FormData) {
   if (!env.AUTH_ENABLED) redirect('/login?error=not-configured');
   try {
     assertOrigin(await headers(), env.AUTH_URL);
-    limiter.consume('oauth-start', 30);
+    await limiter.consume('oauth-start', 30);
     await signIn('discord', { redirectTo: safeReturnTo(data.get('returnTo')) });
   } catch (error) {
     if (error instanceof AuthError || error instanceof SiteError) redirect('/login?error=unavailable');

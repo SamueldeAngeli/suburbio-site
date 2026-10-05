@@ -1,0 +1,57 @@
+.benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.benefit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.benefit-art {
+  height: 100px;
+  background: linear-gradient(135deg, #123047, #0c1624);
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+  color: #47ceff;
+}
+.benefit-card dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 13px;
+}
+.benefit-card dt {
+  color: #91a4b9;
+}
+.benefit-card dd {
+  margin: 0;
+}
+.gift-choice {
+  border: 1px solid #274258;
+  padding: 16px;
+  margin: 18px 0;
+}
+.gift-choice label {
+  display: block;
+  margin: 12px 0;
+}
+.gift-choice input:not([type='radio']):not([type='checkbox']),
+.renewal-options select {
+  width: 100%;
+  padding: 12px;
+  background: #09131f;
+  color: #edf4fb;
+  border: 1px solid #274258;
+}
+.renewal-options {
+  padding: 14px;
+  margin-top: 12px;
+  border: 1px solid #274258;
+}
+.benefit-card button:focus-visible,
+.renewal-options select:focus-visible {
+  outline: 2px solid #47ceff;
+  outline-offset: 3px;
+}

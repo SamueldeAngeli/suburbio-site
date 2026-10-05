@@ -14,3 +14,6 @@ backups/
 *.dump
 *.pem
 *.key
+
+# Ferramentas e artefatos locais (LiveKit de dev, capturas de verificação). Nunca versionar.
+.local/

@@ -1,0 +1,226 @@
+.screen-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.screen-sidebar {
+  padding: 32px 24px;
+  background: #0b1320;
+  border-right: 1px solid #213043;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.screen-sidebar h2 {
+  font-size: 36px;
+}
+.screen-sidebar form {
+  display: grid;
+  gap: 12px;
+}
+.screen-sidebar input,
+.screen-layout select {
+  background: #09131f;
+  border: 1px solid #31445c;
+  color: #edf4fb;
+  padding: 12px;
+  max-width: 100%;
+  border-radius: 4px;
+}
+.screen-main {
+  padding: 32px;
+  min-width: 0;
+}
+.screen-main h1 {
+  font-size: clamp(28px, 3vw, 42px);
+}
+.screen-main header {
+  margin-bottom: 24px;
+}
+.screen-main p {
+  line-height: 1.65;
+  margin: 14px 0;
+}
+.screen-stage {
+  position: relative;
+  aspect-ratio: 16/9;
+  max-height: 65vh;
+  background: radial-gradient(ellipse at center, #132b40, #070e18);
+  border: 1px solid #213043;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.screen-stage video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.screen-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 30px;
+  color: #91a4b9;
+  gap: 16px;
+}
+.screen-empty h2 {
+  font-size: clamp(20px, 3vw, 32px);
+  color: #edf4fb;
+}
+.screen-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: #07111ee8;
+  border: 1px solid #29425b;
+  padding: 8px 12px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.screen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+}
+.screen-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.screen-controls .button {
+  padding: 12px;
+  font-size: 12px;
+}
+.screen-layout details {
+  border: 1px solid #213043;
+  padding: 16px;
+  border-radius: 5px;
+}
+.screen-layout summary {
+  cursor: pointer;
+}
+.screen-layout fieldset {
+  border: 0;
+  display: grid;
+  gap: 12px;
+  margin-top: 15px;
+}
+.screen-layout button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.screen-layout :focus-visible {
+  outline: 2px solid #47ceff;
+  outline-offset: 4px;
+}
+.screen-sidebar details button {
+  display: block;
+  padding: 8px;
+}
+.screen-stage:fullscreen {
+  max-height: none;
+  height: 100vh;
+  aspect-ratio: auto;
+}
+.screen-empty svg {
+  color: #47ceff;
+}
+@media (max-width: 900px) {
+  .screen-layout {
+    grid-template-columns: 1fr;
+  }
+  .screen-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #213043;
+  }
+  .screen-main {
+    padding: 22px;
+  }
+  .screen-stage {
+    min-height: 260px;
+  }
+  .screen-controls {
+    align-items: stretch;
+  }
+  .screen-controls .button {
+    flex: 1;
+  }
+  .screen-controls label {
+    flex-wrap: wrap;
+  }
+  .screen-empty p {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen-layout * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Native controls retain the city palette, including secondary room actions. */
+.screen-layout button:not(.button) {
+  appearance: none;
+  background: #112234;
+  color: #e9f3fb;
+  border: 1px solid #35506a;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.screen-layout button:not(.button):hover:not(:disabled) {
+  background: #19364b;
+  border-color: #47ceff;
+}
+.screen-layout button:disabled {
+  background: #13202e;
+  color: #889aad;
+  border-color: #26384a;
+  opacity: 0.7;
+}
+.screen-sidebar > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.screen-sidebar p,
+.screen-sidebar strong {
+  overflow-wrap: anywhere;
+}
+.screen-main > .screen-stage {
+  height: auto;
+  min-height: 300px;
+  max-height: none;
+  aspect-ratio: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 16px;
+  padding: 16px;
+}
+.screen-stage > div {
+  min-width: 0;
+}
+.screen-stage > div:has(audio) {
+  display: none;
+}
+.screen-stage video {
+  display: block;
+  height: auto;
+  max-height: 65vh;
+  border-radius: 8px;
+  background: #050a10;
+}

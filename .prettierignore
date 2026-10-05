@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+.local
+public
+img
+docs
+*.md
+package-lock.json
