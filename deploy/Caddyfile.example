@@ -1,0 +1,67 @@
+# Caddyfile EXEMPLO — Windows Server 2025. Copiar para D:\SUBURBIO\caddy\Caddyfile na VPS.
+# Domínio: defina a variável de ambiente de máquina SUBURBIO_DOMAIN (ex.: suburbioroleplay.com)
+# ou substitua {$SUBURBIO_DOMAIN} pelo domínio real em todo o arquivo.
+# Validar antes de recarregar:  caddy validate --config D:\SUBURBIO\caddy\Caddyfile
+#
+# Pré-requisitos: DNS A/AAAA de <domínio>, www, api, tela e turn apontando para a VPS;
+# portas 80 e 443 abertas (o Caddy emite e renova os certificados sozinho via HTTP-01/TLS-ALPN).
+
+{
+	# E-mail para avisos da autoridade certificadora (opcional, recomendado):
+	# email admin@exemplo.com
+	# Caminho fixo dos certificados: o LiveKit lê daqui o certificado de turn.<domínio> (TURN/TLS 5349).
+	storage file_system D:/SUBURBIO/caddy/data
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
+
+# Site (Next.js, PM2 suburbio-site em 127.0.0.1:3002).
+{$SUBURBIO_DOMAIN} {
+	import security_headers
+	encode zstd gzip
+	request_body {
+		max_size 1MB
+	}
+	reverse_proxy 127.0.0.1:3002
+}
+
+# www redireciona para a origem canônica: AUTH_URL e o callback OAuth usam só o domínio raiz.
+www.{$SUBURBIO_DOMAIN} {
+	redir https://{$SUBURBIO_DOMAIN}{uri} permanent
+}
+
+# API (PM2 suburbio-api em 127.0.0.1:3000). Só rotas públicas; /internal/* nunca é exposto
+# (site e bot falam com a API por http://127.0.0.1:3000).
+api.{$SUBURBIO_DOMAIN} {
+	import security_headers
+	request_body {
+		max_size 64KB
+	}
+	@public path /webhooks/mercadopago /live /ready /health
+	handle @public {
+		reverse_proxy 127.0.0.1:3000
+	}
+	# Descomente APENAS se o servidor FiveM rodar em outra máquina (bridge chama a API pela internet):
+	# handle /internal/fivem/* {
+	# 	reverse_proxy 127.0.0.1:3000
+	# }
+	handle {
+		respond 404
+	}
+}
+
+# LiveKit — sinalização WebSocket (LIVEKIT_PUBLIC_URL=wss://tela.<domínio>).
+tela.{$SUBURBIO_DOMAIN} {
+	reverse_proxy 127.0.0.1:7880
+}
+
+# TURN: o tráfego TURN vai direto ao LiveKit (5349/tcp TLS, 3478/udp), não pelo Caddy.
+# Este bloco existe só para o Caddy emitir/renovar o certificado de turn.<domínio>.
+turn.{$SUBURBIO_DOMAIN} {
+	respond 404
+}

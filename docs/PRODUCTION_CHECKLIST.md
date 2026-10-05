@@ -27,8 +27,7 @@ Fonte única dos números de teste. Execução de 2026-10-05, Windows, Node 24, 
 
 ## Antes de abrir ao público (fora do código)
 
-- [ ] **Commits:** nada desta rodada foi commitado. O bot **não é repositório git**: rode `git init` antes do deploy.
-- [ ] **VPS:** PostgreSQL, Memurai/Redis, LiveKit, Caddy e PM2 instalados conforme `DEPLOYMENT.md`; firewall fechado nas portas internas; NTP ativo.
+- [ ] **VPS:** seguir `WINDOWS_SERVER_DEPLOY.md` (PostgreSQL, Memurai/Redis, LiveKit, Caddy, PM2, tarefa de boot); firewall fechado nas portas internas; NTP ativo. O checklist de go-live completo está na seção 20 desse guia.
 - [ ] **Segredos:** gerar novos valores para produção (4 HMAC/allowlist distintos, `AUTH_SECRET`, LiveKit ≥ 32). Não reutilizar chaves de desenvolvimento.
 - [ ] **Migrations:** backup, depois `npm run db:status`, depois `MIGRATE_CONFIRM=suburbio_api npm run db:migrate` (012 afiliados e 013 presentes ainda não aplicadas em banco real).
 - [ ] **OAuth Discord:** cadastrar `https://suburbioroleplay.com/api/auth/callback/discord` no Developer Portal e homologar login real.
@@ -36,7 +35,7 @@ Fonte única dos números de teste. Execução de 2026-10-05, Windows, Node 24, 
 - [ ] **Bot:** produção exige `API_ENABLED=true` (hoje `false` no `.env` local, ou seja, sem sincronização de allowlist/VIP), `TICKET_STORAGE_MODE=local`, `SCHEDULER_STORAGE_MODE=local` explícitos, `HEALTH_PORT=3101` e, depois de validar, `ROLE_AUTOMATION_SAFE_MODE=false`.
 - [ ] **LiveKit:** DNS `tela.` e `turn.`, certificado para TURN TLS, portas 7881/tcp, 7882/udp, 3478/udp e 5349/tcp.
 - [ ] **API:** dimensionar `REDEEM_IP_LIMIT` (teto global de resgates por minuto, porque o IP visto é o do bot).
-- [ ] **Base FiveM:** aplicar `api suburbio/docs/FIVEM_BASE_CHANGES.md` (correlation ID; recomendado, não bloqueante).
+- [ ] **Base FiveM:** aplicar `suburbio-api/docs/FIVEM_BASE_CHANGES.md` (correlation ID; recomendado, não bloqueante).
 - [ ] **Backup:** agendar `pg_dump` diário e cópia do SQLite e dos transcripts do bot; testar uma restauração.
 
 ## Riscos aceitos

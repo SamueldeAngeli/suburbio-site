@@ -17,7 +17,7 @@ Nenhum segredo usa `NEXT_PUBLIC_`. `npm run verify:client` falha se nome ou valo
 | `DISCORD_ROLE_AUTH_ENABLED` | — | Usa cargos do Discord na decisão de admin da API |
 | `DISCORD_ROLE_REFRESH_SECONDS` | — | 10–60; padrão 30 |
 | `SUBURBIO_API_ENABLED` | — | `true` liga o BFF |
-| `SUBURBIO_API_URL` | API | Origem sem path/query/credencial. Produção: HTTPS, ou HTTP somente para loopback/rede privada |
+| `SUBURBIO_API_URL` | API | Origem sem path/query/credencial. Produção: HTTPS, ou HTTP somente para loopback/rede privada. Na VPS: `http://127.0.0.1:3000` (o proxy público bloqueia `/internal/*`) |
 | `SITE_SERVICE_ID` | API | Padrão `site`; igual ao cadastro na API |
 | `SITE_SERVICE_SECRET` | API | ≥ 32; **igual** a `SITE_SERVICE_SECRET` da API e diferente de todos os outros secrets |
 | `SUBURBIO_API_TIMEOUT_MS` | — | 500–30000; padrão 5000. Substitui o antigo `API_TIMEOUT_MS` (removido por colidir com ferramentas que usam o mesmo nome) |

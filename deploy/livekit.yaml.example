@@ -1,0 +1,32 @@
+# livekit.yaml EXEMPLO — copiar para D:\SUBURBIO\livekit\livekit.yaml na VPS.
+# Substitua <domínio> e as chaves. Este arquivo real contém secret: nunca versionar.
+# O mesmo par key/secret vai em LIVEKIT_API_KEY / LIVEKIT_API_SECRET do site (.env.production.local).
+
+# Sinalização só em loopback; o Caddy publica wss://tela.<domínio> -> 127.0.0.1:7880.
+port: 7880
+bind_addresses:
+  - 127.0.0.1
+
+rtc:
+  # Mídia WebRTC direto da internet (liberar no firewall).
+  tcp_port: 7881
+  udp_port: 7882
+  # Descobre o IP público via STUN; em VPS com IP público direto funciona sem node_ip.
+  use_external_ip: true
+
+turn:
+  enabled: true
+  domain: turn.<domínio>
+  tls_port: 5349
+  udp_port: 3478
+  # Certificado emitido pelo Caddy (storage fixo em D:/SUBURBIO/caddy/data). Se o emissor for ZeroSSL,
+  # a pasta é acme.zerossl.com-v2-dv90. Reinicie o LiveKit após cada renovação (≈ a cada 60 dias).
+  cert_file: D:/SUBURBIO/caddy/data/certificates/acme-v02.api.letsencrypt.org-directory/turn.<domínio>/turn.<domínio>.crt
+  key_file: D:/SUBURBIO/caddy/data/certificates/acme-v02.api.letsencrypt.org-directory/turn.<domínio>/turn.<domínio>.key
+
+keys:
+  # <LIVEKIT_API_KEY>: <LIVEKIT_API_SECRET com 32+ caracteres>
+  REPLACE_WITH_API_KEY: REPLACE_WITH_SECRET_32_CHARS_OR_MORE
+
+logging:
+  level: info
