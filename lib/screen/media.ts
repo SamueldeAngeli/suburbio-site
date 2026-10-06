@@ -1,11 +1,15 @@
+import type { TrackPublishOptions } from 'livekit-client';
+
+// Bitrate máximo da camada principal; o simulcast gera camadas menores para quem recebe em
+// janela pequena ou rede fraca (adaptive stream + dynacast escolhem por espectador).
 export const qualityPresets = {
-  auto: { label: 'Automática — recomendado na sala', height: 720, fps: 30 },
-  '360p30': { label: '360p · 30 FPS', height: 360, fps: 30 },
-  '480p30': { label: 'Econômico · 480p30', height: 480, fps: 30 },
-  '720p30': { label: 'Equilibrado · 720p30', height: 720, fps: 30 },
-  '720p60': { label: 'Jogo · 720p60', height: 720, fps: 60 },
-  '1080p30': { label: 'Alta · 1080p30', height: 1080, fps: 30 },
-  '1080p60': { label: 'Máxima · 1080p60', height: 1080, fps: 60 },
+  auto: { label: 'Automática — recomendado na sala', height: 720, fps: 30, bitrate: 2_500_000 },
+  '360p30': { label: '360p · 30 FPS', height: 360, fps: 30, bitrate: 600_000 },
+  '480p30': { label: 'Econômico · 480p30', height: 480, fps: 30, bitrate: 1_000_000 },
+  '720p30': { label: 'Equilibrado · 720p30', height: 720, fps: 30, bitrate: 2_000_000 },
+  '720p60': { label: 'Jogo · 720p60', height: 720, fps: 60, bitrate: 3_000_000 },
+  '1080p30': { label: 'Alta · 1080p30', height: 1080, fps: 30, bitrate: 3_500_000 },
+  '1080p60': { label: 'Máxima · 1080p60', height: 1080, fps: 60, bitrate: 5_000_000 },
 };
 export type Quality = keyof typeof qualityPresets;
 export type CaptureState = 'idle' | 'capturing' | 'muted' | 'ended';
@@ -19,6 +23,17 @@ export function captureConstraints(quality: Quality, audio: boolean): DisplayMed
     audio,
     selfBrowserSurface: 'exclude',
   } as DisplayMediaStreamOptions;
+}
+/** Publicação da tela: simulcast no vídeo; 60 FPS prioriza fluidez, demais priorizam nitidez. */
+export function screenPublishOptions(quality: Quality, kind: string): TrackPublishOptions {
+  const p = qualityPresets[quality];
+  if (kind !== 'video') return { source: 'screen_share_audio' as TrackPublishOptions['source'] };
+  return {
+    source: 'screen_share' as TrackPublishOptions['source'],
+    simulcast: true,
+    screenShareEncoding: { maxBitrate: p.bitrate, maxFramerate: p.fps },
+    degradationPreference: p.fps >= 60 ? 'maintain-framerate' : 'maintain-resolution',
+  };
 }
 export class CaptureController {
   stream: MediaStream | null = null;
@@ -63,17 +78,6 @@ export class CaptureController {
       video.removeEventListener('unmute', unmute);
     };
     this.notify(video.muted ? 'muted' : 'capturing', stream);
-  }
-  async quality(value: Quality) {
-    const p = qualityPresets[value];
-    await this.stream
-      ?.getVideoTracks()[0]
-      ?.applyConstraints({ height: { ideal: p.height }, frameRate: { ideal: p.fps } });
-  }
-  audio(enabled: boolean) {
-    this.stream?.getAudioTracks().forEach((t) => {
-      t.enabled = enabled;
-    });
   }
   stop() {
     this.version++;

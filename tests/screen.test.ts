@@ -1,5 +1,5 @@
 import { it, expect, vi } from 'vitest';
-import { CaptureController, captureConstraints, qualityPresets } from '@/lib/screen/media';
+import { CaptureController, captureConstraints, qualityPresets, screenPublishOptions } from '@/lib/screen/media';
 function track(kind = 'video') {
   const t = new EventTarget() as EventTarget & {
     kind: string;
@@ -113,15 +113,24 @@ it('sair durante seletor pendente impede captura órfã', async () => {
   expect(s.video.stop).toHaveBeenCalled();
   expect(c.stream).toBeNull();
 });
-it('áudio e qualidade controlados independentemente', async () => {
-  const s = stream(true),
-    c = new CaptureController({ getDisplayMedia: vi.fn(async () => s.media) }, vi.fn());
-  await c.start('auto', true);
-  c.audio(false);
-  expect(s.sound?.enabled).toBe(false);
-  await c.quality('480p30');
-  expect(s.video.applyConstraints).toHaveBeenCalledWith({ height: { ideal: 480 }, frameRate: { ideal: 30 } });
-  c.stop();
+it('publicação da tela: simulcast, bitrate contido por preset e áudio da tela separado', () => {
+  const bitrates = (Object.keys(qualityPresets) as (keyof typeof qualityPresets)[]).map(
+    (q) => screenPublishOptions(q, 'video').screenShareEncoding!.maxBitrate,
+  );
+  for (const bitrate of bitrates) {
+    expect(bitrate).toBeGreaterThanOrEqual(500_000);
+    expect(bitrate).toBeLessThanOrEqual(5_000_000);
+  }
+  expect(screenPublishOptions('360p30', 'video')).toMatchObject({
+    source: 'screen_share',
+    simulcast: true,
+    degradationPreference: 'maintain-resolution',
+  });
+  expect(screenPublishOptions('1080p60', 'video')).toMatchObject({
+    screenShareEncoding: { maxBitrate: 5_000_000, maxFramerate: 60 },
+    degradationPreference: 'maintain-framerate',
+  });
+  expect(screenPublishOptions('720p30', 'audio')).toEqual({ source: 'screen_share_audio' });
 });
 it('fim da track de áudio atualiza disponibilidade sem parar vídeo', async () => {
   const s = stream(true),

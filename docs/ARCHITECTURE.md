@@ -51,18 +51,26 @@ Sessão Discord **não** concede admin. Toda página e handler admin chama `requ
 | Estado | Onde | Classe | Decisão |
 | --- | --- | --- | --- |
 | Rate limit (`lib/server/security.ts`) | Redis `suburbio:site:rate-limit:*`, janela fixa com TTL = janela | C (multi-instância) | Redis quando `REDIS_URL` existe. Redis fora → janela local por processo (nunca sem limite) |
-| Salas de tela (`lib/screen/rooms.ts`) | Redis hash `suburbio:site:livekit:rooms`, TTL 13h; lock `suburbio:site:lock:livekit:rooms` (PX 10s) | B + C | Sobrevive a restart e é compartilhado entre instâncias. Redis fora → `ROOM_UNAVAILABLE`, só a tela fica indisponível |
+| Salas de tela (`lib/screen/rooms.ts`) | Redis hash `suburbio:site:livekit:rooms` (TTL 13h); locks `suburbio:site:lock:livekit:room:<código>` por sala e `…:livekit:rooms:create` para criação (PX 10s) | B + C | **Somente Redis** (`LIVEKIT_ENABLED` exige `REDIS_URL`). Sobrevive a restart e é compartilhado entre instâncias. Redis fora → `ROOM_UNAVAILABLE` e `/api/ready` 503 |
 | Membership Discord (`lib/auth/discord-membership.ts`) | Memória do processo, TTL ≤ 8h, máx. 10k | A (local) | Contém access token OAuth: **não** é persistido. Com várias instâncias, o refresh de cargos acontece por instância |
 | Conexão Redis | `globalThis` | A | Handle do processo |
 | `knownErrors` e similares | Constantes | A | — |
 
-Sem `REDIS_URL`, o site roda em modo instância única: salas e rate limit ficam na memória e se perdem no restart.
+Sem `REDIS_URL`, o rate limit fica na memória do processo (modo instância única). Salas de tela nunca ficam na memória: sem Redis a transmissão não pode ser ligada.
 
-### LiveKit
+### Transmissão (LiveKit)
 
-- `LIVEKIT_INTERNAL_URL`: usado só pelo SDK do servidor (loopback ou rede privada).
-- `LIVEKIT_PUBLIC_URL`: único endereço entregue ao navegador. Em produção é obrigatoriamente `wss://` em host público.
-- O navegador recebe `{code, host, locked, url, token}`, com JWT de 60s restrito à sala. Chave, secret e URL interna nunca saem do servidor (testes em `tests/room-controls.test.ts`; verificação de bundle em `npm run verify:client`).
+Fluxo: sessão Discord → Next.js (`POST /api/screen/room`) → Redis (estado da sala) → token LiveKit de 60s → navegador ↔ LiveKit (WebRTC). A Subúrbio API não participa.
+
+- `LIVEKIT_ENABLED` é a única flag. Desligada (ou config inválida), `/tela` mostra "Transmissão indisponível" renderizado no servidor e a rota responde `ROOM_UNAVAILABLE`.
+- `LIVEKIT_INTERNAL_URL`: só o SDK do servidor (loopback/rede privada). `LIVEKIT_PUBLIC_URL`: único endereço entregue ao navegador (`wss://` público em produção). Chave e secret nunca saem do servidor (`tests/room-controls.test.ts`, `npm run verify:client`).
+- Sala (Redis): código público de 10 hex, nome interno aleatório (128 bits) na LiveKit, título, anfitrião, `createdAt`, expiração (12h), estado `open`/`locked`, capacidade (2 até `LIVEKIT_ROOM_MAX_PARTICIPANTS`), apresentadores, silenciados, bloqueados, admitidos e reservas de vaga (90s).
+- Presença = participantes conectados na LiveKit + reservas válidas. A LiveKit é a fonte da presença: aba fechada, queda ou reload se resolvem sozinhos (a reserva expira; reentrada com a mesma identity substitui a conexão antiga). Sala encerrada pela LiveKit (vazia) é removida do Redis na próxima ação.
+- Entrada, saída e moderação rodam sob lock da sala: duas entradas simultâneas não ocupam a mesma última vaga. A LiveKit também recebe `maxParticipants` como segunda barreira.
+- Papéis e grants (token e `updateParticipant`): anfitrião e apresentador publicam tela, áudio da tela e microfone; participante só microfone; silenciado nada. Ninguém recebe `roomAdmin` nem `canPublishData`. Identity, nome e papel vêm da sessão; o corpo só escolhe ação, código e alvo.
+- Ações do anfitrião (validadas no servidor): bloquear entradas, conceder/revogar apresentação (`share`, revogar silencia a tela já publicada), silenciar (`silence`), transferir, remover (`kick` com `revokeTokenTs` e bloqueio de reentrada) e encerrar.
+- Resposta ao navegador: `{code, title, host, locked, capacity, role, url, token}`. Os metadados da sala (anfitrião, bloqueio, capacidade, apresentadores, silenciados) só servem para exibir estado; a autorização é o grant da LiveKit.
+- Cliente: `adaptiveStream` + `dynacast`; tela com simulcast e bitrate por preset (0,6–5 Mbps, 360p30 a 1080p60). Reconexão: a LiveKit retoma quedas curtas; desconexão inesperada tenta de novo em 2s, 5s e 10s e depois para em "Conexão perdida". A aba lembra a sala (`sessionStorage`) e volta sozinha após reload.
 
 ## API (resumo; detalhe no repositório da API)
 

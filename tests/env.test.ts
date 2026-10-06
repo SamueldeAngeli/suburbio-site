@@ -7,6 +7,7 @@ const liveKit = {
   LIVEKIT_PUBLIC_URL: 'wss://tela.suburbio.example',
   LIVEKIT_API_KEY: 'site-key',
   LIVEKIT_API_SECRET: 's'.repeat(32),
+  REDIS_URL: 'redis://127.0.0.1:6379',
 };
 const production = { NODE_ENV: 'production', ...liveKit };
 
@@ -57,6 +58,27 @@ describe('LiveKit configuration', () => {
     } catch (error) {
       expect(String(error)).not.toContain('tiny-secret-value');
     }
+  });
+  it('transmissão exige Redis: salas nunca ficam na memória do processo', () => {
+    expect(() => parseServerEnv({ ...production, REDIS_URL: '' })).toThrow('REDIS_URL');
+    expect(() => parseServerEnv({ ...liveKit, REDIS_URL: undefined })).toThrow('REDIS_URL');
+  });
+  it.each(['LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'LIVEKIT_PUBLIC_URL', 'LIVEKIT_INTERNAL_URL'])(
+    'configuração ausente (%s) bloqueia a transmissão',
+    (key) => {
+      expect(() => parseServerEnv({ ...production, [key]: undefined })).toThrow(key);
+    },
+  );
+  it('capacidade máxima por sala é configurável dentro de 2–50 (padrão 10)', () => {
+    expect(parseServerEnv(production).LIVEKIT_ROOM_MAX_PARTICIPANTS).toBe(10);
+    expect(parseServerEnv({ ...production, LIVEKIT_ROOM_MAX_PARTICIPANTS: '4' }).LIVEKIT_ROOM_MAX_PARTICIPANTS).toBe(4);
+    expect(() => parseServerEnv({ ...production, LIVEKIT_ROOM_MAX_PARTICIPANTS: '1' })).toThrow(
+      'LIVEKIT_ROOM_MAX_PARTICIPANTS',
+    );
+    expect(() => parseServerEnv({ ...production, LIVEKIT_ROOM_MAX_PARTICIPANTS: '500' })).toThrow();
+  });
+  it('desligada não exige nenhuma variável LiveKit nem Redis', () => {
+    expect(parseServerEnv({ NODE_ENV: 'production', LIVEKIT_ENABLED: 'false' }).LIVEKIT_ENABLED).toBe(false);
   });
 });
 

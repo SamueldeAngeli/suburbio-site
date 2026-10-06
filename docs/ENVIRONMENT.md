@@ -21,13 +21,14 @@ Nenhum segredo usa `NEXT_PUBLIC_`. `npm run verify:client` falha se nome ou valo
 | `SITE_SERVICE_ID` | API | Padrão `site`; igual ao cadastro na API |
 | `SITE_SERVICE_SECRET` | API | ≥ 32; **igual** a `SITE_SERVICE_SECRET` da API e diferente de todos os outros secrets |
 | `SUBURBIO_API_TIMEOUT_MS` | — | 500–30000; padrão 5000. Substitui o antigo `API_TIMEOUT_MS` (removido por colidir com ferramentas que usam o mesmo nome) |
-| `LIVEKIT_ENABLED` | — | `true` liga `/tela` |
+| `LIVEKIT_ENABLED` | — | `true` liga `/tela` (flag única da transmissão). Exige `REDIS_URL` e o grupo LiveKit abaixo |
 | `LIVEKIT_INTERNAL_URL` | LiveKit | Endereço do SDK no servidor. `ws`/`http` só em loopback/rede privada em produção |
 | `LIVEKIT_PUBLIC_URL` | LiveKit | Endereço entregue ao navegador. Produção: `wss://` em host público |
 | `LIVEKIT_API_KEY` | LiveKit | Chave cadastrada no LiveKit |
 | `LIVEKIT_API_SECRET` | LiveKit | ≥ 32 em produção |
-| `REDIS_URL` | opcional | `redis://` ou `rediss://`. Ausente = instância única |
+| `LIVEKIT_ROOM_MAX_PARTICIPANTS` | — | 2–50; padrão 10. Teto de participantes por sala (anfitrião incluso); o anfitrião escolhe de 2 até esse valor |
+| `REDIS_URL` | transmissão | `redis://` ou `rediss://`. **Obrigatório com `LIVEKIT_ENABLED`** (salas só no Redis). Sem transmissão é opcional: ausente = rate limit por instância |
 | `REDIS_KEY_PREFIX` | — | Padrão `suburbio:site:`; nunca usar o prefixo da API |
 | `PORT` | — | Definida pelo PM2 (`ecosystem.config.cjs`: 3002 em 127.0.0.1) |
 
-Produção mínima: `AUTH_ENABLED=true`, `SUBURBIO_API_ENABLED=true`, `LIVEKIT_ENABLED=true` (se `/tela` for publicado) e `REDIS_URL` (recomendado).
+Produção mínima: `AUTH_ENABLED=true`, `SUBURBIO_API_ENABLED=true`, `REDIS_URL` (recomendado; obrigatório com transmissão) e, só depois de homologar LiveKit/TLS/TURN, `LIVEKIT_ENABLED=true`. Nunca criar `NEXT_PUBLIC_LIVEKIT_*`.

@@ -30,6 +30,8 @@ before(async () => {
         DISCORD_CLIENT_SECRET: 'isolated-discord-test-secret-not-real',
         DISCORD_REDIRECT_URI: `${origin}/api/auth/callback/discord`,
         SUBURBIO_API_ENABLED: 'false',
+        // Smoke HTTP não cobre transmissão; independe do .env.local do desenvolvedor.
+        LIVEKIT_ENABLED: 'false',
       },
     },
   );
@@ -183,14 +185,14 @@ for (const action of ['create', 'checkout'])
     assert.equal(anonymous.status, 401);
   });
 
-test('tela acessível a cidadão sem permissão administrativa', async () => {
+test('tela acessível a cidadão sem permissão administrativa; desligada mostra indisponível limpo', async () => {
   const r = await get('/tela', { Cookie: cookie });
   assert.equal(r.status, 200);
   const body = await r.text();
-  assert.match(body, /Criar sala/);
-  assert.match(body, /Entrar na sala/);
-  assert.match(body, /Compartilhamento de tela/);
+  assert.match(body, /Transmissão indisponível/);
+  assert.doesNotMatch(body, /Criar sala/);
   assert.doesNotMatch(body, /Aguardando autorização da API/);
+  assert.doesNotMatch(body, /Error|stack|LIVEKIT_/);
 });
 test('presentes não inventam histórico para conta autenticada', async () => {
   const r = await get('/minha-conta/presentes', { Cookie: cookie });
@@ -232,7 +234,12 @@ test('health responde sem dependências e ready reflete API desligada', async ()
   assert.deepEqual(await health.json(), { status: 'ok', service: 'site' });
   const ready = await get('/api/ready');
   assert.equal(ready.status, 200);
-  assert.deepEqual((await ready.json()).checks, { config: 'ok', api: 'disabled', redis: 'disabled' });
+  assert.deepEqual((await ready.json()).checks, {
+    config: 'ok',
+    api: 'disabled',
+    redis: 'disabled',
+    livekit: 'disabled',
+  });
 });
 test('payload acima do limite é recusado com 413 antes de qualquer chamada à API', async () => {
   const r = await fetch(origin + '/api/screen/room', {

@@ -34,6 +34,8 @@ const schema = z.object({
   LIVEKIT_PUBLIC_URL: z.string().optional(),
   LIVEKIT_API_KEY: z.string().optional(),
   LIVEKIT_API_SECRET: z.string().optional(),
+  // Teto de participantes por sala (anfitrião incluso); cada sala escolhe de 2 até este valor.
+  LIVEKIT_ROOM_MAX_PARTICIPANTS: z.coerce.number().int().min(2).max(50).default(10),
   REDIS_URL: z.string().optional(),
   REDIS_KEY_PREFIX: z
     .string()
@@ -114,6 +116,8 @@ function validateLiveKit(env: Env, production: boolean) {
     throw new Error('WSS público obrigatório: LIVEKIT_PUBLIC_URL');
   required(env, 'LIVEKIT_API_KEY', 3);
   required(env, 'LIVEKIT_API_SECRET', production ? 32 : 8);
+  // Salas, capacidade e permissões vivem no Redis; nunca na memória de um processo.
+  if (!env.REDIS_URL) throw new Error('Configuração ausente ou inválida: REDIS_URL (exigida por LIVEKIT_ENABLED)');
 }
 
 export function parseServerEnv(raw: Record<string, string | undefined>) {

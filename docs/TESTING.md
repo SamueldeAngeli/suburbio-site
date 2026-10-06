@@ -14,7 +14,7 @@ Cada repositório roda os próprios testes. Nenhum teste escreve em banco, API o
 | Fronteira client | `npm run verify:client` | build feito; lê `.env*` para checar também os valores |
 | HTTP | `npm run test:http` | build; sobe `next start` isolado em 127.0.0.1:3107 com credenciais de teste |
 | Navegador | `npm run test:ui`, `npm run test:affiliate-ui` | build + Edge/Playwright |
-| WebRTC real | `node tests/livekit.browser.mjs` | build + LiveKit de desenvolvimento em 127.0.0.1:7880 (`.local/livekit`) |
+| WebRTC real | `node tests/livekit.browser.mjs` | build + LiveKit de desenvolvimento em 127.0.0.1:7880 (`.local/livekit`) + Redis de teste em 127.0.0.1:16379 (`TEST_REDIS_URL` para outro endereço) |
 
 Cobertura de cenários de produção no site:
 
@@ -23,6 +23,9 @@ Cobertura de cenários de produção no site:
 | Timeout da API, API indisponível, HMAC inválido, resposta malformada | `tests/api-diagnostics.test.ts` |
 | Redis indisponível (rate limit cai para o limite local; salas falham fechadas) | `tests/rate-limit.test.ts`, `tests/room-controls.test.ts` |
 | LiveKit indisponível; o client nunca recebe secret ou URL interna | `tests/room-controls.test.ts` |
+| Transmissão: papéis e grants, capacidade e última vaga concorrente, expiração, kick/revogação, sem fallback em memória | `tests/room-controls.test.ts` |
+| Transmissão: sessão obrigatória, identity/papel não forjáveis, CSRF, corpo e abuso (criação/tokens) | `tests/screen-room-route.test.ts` |
+| Transmissão na UI: estados, permissão revogada, reconexão espaçada, reload, cleanup | `tests/screen-ui.test.tsx`, `tests/screen-page.test.tsx` |
 | Env de produção (WSS público, secret ≥ 32, nomes novos) | `tests/env.test.ts` |
 | Readiness | `tests/readiness.test.ts`, `tests/http.smoke.mjs` |
 | Usuário sem cargo, sessão expirada ou adulterada, origem inválida, payload grande | `tests/accounts.test.ts`, `tests/auth.test.ts`, `tests/http.smoke.mjs` |

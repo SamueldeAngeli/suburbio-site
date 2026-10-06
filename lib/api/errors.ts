@@ -6,6 +6,7 @@ const messages: Record<string, string> = {
   ROOM_NOT_FOUND: 'Sala ou participante não encontrado.',
   ROOM_LOCKED: 'Esta sala está fechada para novas entradas.',
   ROOM_HOST_REQUIRED: 'Somente o anfitrião pode realizar esta ação.',
+  ROOM_FULL: 'Esta sala está cheia.',
   GIFT_RECIPIENT_NOT_FOUND: 'Destinatário não encontrado. Confira o Discord informado.',
   GIFT_SELF: 'Selecione Para mim para adquirir este benefício.',
   GIFT_CONFIRMATION_EXPIRED: 'Busque e confirme o destinatário novamente.',

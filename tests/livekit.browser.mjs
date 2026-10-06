@@ -26,6 +26,10 @@ const server = spawn(
       DISCORD_REDIRECT_URI: origin + '/api/auth/callback/discord',
       SUBURBIO_API_ENABLED: 'false',
       DISCORD_ROLE_AUTH_ENABLED: 'false',
+      // Salas exigem Redis: instância isolada de teste (padrão 127.0.0.1:16379) e prefixo próprio.
+      LIVEKIT_ENABLED: 'true',
+      REDIS_URL: process.env.TEST_REDIS_URL ?? 'redis://127.0.0.1:16379',
+      REDIS_KEY_PREFIX: 'suburbio:livekit-test:',
     },
   },
 );
@@ -115,8 +119,22 @@ try {
   await viewer.getByRole('status').filter({ hasText: 'Conectado' }).waitFor();
   await host.getByRole('heading', { name: 'Participantes (2)' }).waitFor();
   pass('segundo navegador com outra sessão entra');
-  assert.equal(await viewer.getByRole('button', { name: 'Compartilhar tela', exact: true }).isEnabled(), true);
-  pass('participante pode compartilhar por padrão');
+  assert.equal(await viewer.getByRole('button', { name: 'Compartilhar tela', exact: true }).isEnabled(), false);
+  await viewer.getByText('O anfitrião precisa permitir sua transmissão de tela.', { exact: false }).waitFor();
+  pass('participante não transmite sem permissão do anfitrião');
+  const promote = await viewer.evaluate(
+    async ({ code, id }) => {
+      const response = await fetch('/api/screen/room', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-suburbio-intent': 'screen.room' },
+        body: JSON.stringify({ action: 'share', code, target: id, enabled: true }),
+      });
+      return { status: response.status, code: (await response.json()).error?.code };
+    },
+    { code, id: '223456789012345678' },
+  );
+  assert.deepEqual(promote, { status: 403, code: 'ROOM_HOST_REQUIRED' });
+  pass('participante não se autopromove pelo BFF');
   for (const button of await host.locator('.screen-layout button').all()) {
     const color = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
     assert.notEqual(color, 'rgb(239, 239, 239)');
@@ -147,32 +165,42 @@ try {
   await host.getByRole('button', { name: 'Bloquear entradas' }).click();
   await host.getByRole('button', { name: 'Abrir entradas' }).waitFor();
   pass('host bloqueia entrada');
+  // Reload: a aba volta sozinha para a sala (mesma identity, sem participante duplicado),
+  // inclusive com entradas bloqueadas, porque já tinha sido admitida.
   await viewer.reload();
-  await viewer.getByLabel('Código da sala').fill(code);
-  await viewer.getByRole('button', { name: 'Entrar na sala' }).click();
   await viewer.getByRole('status').filter({ hasText: 'Conectado' }).waitFor();
   await host.getByRole('heading', { name: 'Participantes (2)' }).waitFor();
   pass('reload reconecta mesma identidade sem duplicar');
-  await host.getByRole('button', { name: 'Bloquear transmissão' }).click();
-  await viewer.waitForFunction(() =>
-    [...document.querySelectorAll('button')].some((b) => b.textContent === 'Compartilhar tela' && b.disabled),
-  );
+  await host.getByRole('button', { name: 'Parar compartilhamento', exact: true }).click();
+  await viewer.waitForFunction(() => document.querySelectorAll('video').length === 0);
+  pass('stop remove track remoto');
   await host.getByRole('button', { name: 'Permitir transmissão' }).click();
-  await viewer.getByRole('button', { name: 'Compartilhar tela', exact: true }).waitFor();
   await viewer.waitForFunction(() =>
     [...document.querySelectorAll('button')].some((b) => b.textContent === 'Compartilhar tela' && !b.disabled),
   );
   pass('host concede publicação');
-  await host.getByRole('button', { name: 'Parar compartilhamento', exact: true }).click();
-  await viewer.waitForFunction(() => document.querySelectorAll('video').length === 0);
-  pass('stop remove track remoto');
   await viewer.getByRole('button', { name: 'Compartilhar tela', exact: true }).click();
   await host.waitForFunction(() =>
     [...document.querySelectorAll('video')].some((v) => v.videoWidth > 0 && v.currentTime > 0.2),
   );
   pass('participante transmite vídeo ao anfitrião');
   await host.screenshot({ path: '.local/livekit/room-host.png', fullPage: true });
-  await viewer.getByRole('button', { name: 'Parar compartilhamento', exact: true }).click();
+  await host.getByRole('button', { name: 'Bloquear transmissão' }).click();
+  await host.waitForFunction(() => document.querySelectorAll('video').length === 0);
+  await viewer.getByText('Nenhuma tela sua sendo transmitida').waitFor();
+  await viewer.waitForFunction(() =>
+    [...document.querySelectorAll('button')].some((b) => b.textContent === 'Compartilhar tela' && b.disabled),
+  );
+  pass('revogação interrompe a transmissão do participante');
+  await host.getByRole('button', { name: 'Silenciar participante' }).click();
+  await viewer.waitForFunction(() =>
+    [...document.querySelectorAll('button')].some((b) => b.textContent === 'Ligar microfone' && b.disabled),
+  );
+  await host.getByRole('button', { name: 'Liberar áudio' }).click();
+  await viewer.waitForFunction(() =>
+    [...document.querySelectorAll('button')].some((b) => b.textContent === 'Ligar microfone' && !b.disabled),
+  );
+  pass('silenciar bloqueia e libera o microfone');
   await host.getByRole('button', { name: 'Tornar anfitrião' }).click();
   await viewer.getByRole('button', { name: 'Encerrar sala' }).waitFor();
   pass('transferência de host');
@@ -181,6 +209,7 @@ try {
   pass('leave remove participante');
   await viewer.getByRole('button', { name: 'Encerrar sala' }).click();
   await viewer.getByRole('button', { name: 'Criar sala' }).waitFor();
+  await viewer.getByText('O anfitrião encerrou esta transmissão.').waitFor();
   pass('host encerra sala');
   console.log('LIVEKIT_BROWSER_TESTS=' + checks + ' BROWSERS=2 IDENTITIES=2 CAPTURE=synthetic MEDIA=real-WebRTC');
 } finally {

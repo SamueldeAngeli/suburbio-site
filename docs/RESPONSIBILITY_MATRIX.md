@@ -28,7 +28,7 @@ Na VPS: processos próprios do site Next.js, Subúrbio API/Fastify e bot Discord
 
 OAuth → sessão do site → Next.js → Redis/Memurai (metadados temporários com TTL) → token restrito de LiveKit. A mídia flui pelo WebRTC/SFU; não por Next, API nem Apache como proxy de vídeo. Sinalização HTTP não se confunde com proxy de mídia.
 
-Estado atual: /tela possui somente prévia local de captura. Salas Redis e LiveKit ainda NÃO estão implementados. Esta revisão define seu proprietário, não finge uma integração ativa nem instala um novo serviço. Namespaces/credenciais Redis devem ser isolados entre site e API; nunca acessar chaves de saldo, autorização institucional ou locks financeiros pelo site.
+Estado atual: salas no Redis do site, tokens LiveKit emitidos pelo Next.js e mídia via LiveKit estão implementados e testados com LiveKit local; a ativação em produção depende de homologar domínio/TLS/TURN (`LIVEKIT_ENABLED`). Namespaces/credenciais Redis devem ser isolados entre site e API; nunca acessar chaves de saldo, autorização institucional ou locks financeiros pelo site.
 
 ## Garantias preservadas
 

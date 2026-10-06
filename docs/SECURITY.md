@@ -41,6 +41,15 @@ Uma linha JSON por evento: `timestamp`, `service`, `level`, `event`, `operation`
 
 O retorno do navegador nunca confirma pagamento. A autoridade é o webhook assinado do Mercado Pago (HMAC sobre `id`, `x-request-id` e `ts`, janela de 5 min). Mesmo assim, a API consulta o pagamento na API do provedor antes de persistir, e status, valor, conta e referência do corpo do webhook são ignorados. O checkout só aceita URLs `https://www.mercadopago.com.br` ou `sandbox.mercadopago.com.br`.
 
+## Transmissão de tela
+
+- Token LiveKit só no servidor, após sessão válida; identity = Discord ID da sessão, nome da sessão, TTL 60s, restrito à sala. O corpo da requisição é estrito: campos como `identity`, `role`, `name` ou `canPublish` são recusados (400).
+- Grants mínimos por papel (`canPublishSources`): tela só para anfitrião/apresentador; participante só microfone; silenciado nada; sem `roomAdmin`/`canPublishData`. Publicar tela alterando o frontend é recusado pela própria LiveKit.
+- Toda ação de moderação valida o anfitrião no servidor. Remover usa `revokeTokenTs` (token antigo deixa de valer) e bloqueia novos tokens para a identity na sala. Revogar apresentação silencia a tela já publicada no servidor.
+- Sem enumeração: sala inexistente, expirada, encerrada ou com usuário bloqueado respondem igual (`ROOM_NOT_FOUND`); código de 40 bits sob rate limit.
+- Limites: 30 ações/min por usuário, 5 criações/10 min, 20 entradas (tokens)/min, 2 salas por anfitrião, 100 salas no total, corpo de 1 KB; origem + cabeçalho de intenção (CSRF).
+- Logs de sala registram só operação e duração; nunca token, chave, secret ou URL interna. O bundle cliente é verificado por `npm run verify:client`.
+
 ## Rate limit
 
 O site usa Redis compartilhado com fallback local; a API usa Redis (por serviço e por escopo de resgate). Atenção: no resgate de allowlist, o escopo "IP" da API enxerga o IP do **bot** (quem chama), então `REDEEM_IP_LIMIT` funciona como teto global por minuto. Dimensione esse valor para o pico de resgates na abertura.

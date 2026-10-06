@@ -256,10 +256,11 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 | `SUBURBIO_API_ENABLED` | `true` |
 | `SUBURBIO_API_URL` | `http://127.0.0.1:3000`. **Não use a URL pública**: o Caddy bloqueia `/internal/*` |
 | `SITE_SERVICE_ID` / `SITE_SERVICE_SECRET` | `site` / **igual** a `SITE_SERVICE_SECRET` da API |
-| `LIVEKIT_ENABLED` | `true` se `/tela` for publicado |
+| `LIVEKIT_ENABLED` | `false` até homologar LiveKit, domínio, TLS e TURN; depois `true` (exige `REDIS_URL`) |
+| `LIVEKIT_ROOM_MAX_PARTICIPANTS` | teto por sala, anfitrião incluso (padrão 10, faixa 2–50) |
 | `LIVEKIT_INTERNAL_URL` / `LIVEKIT_PUBLIC_URL` | `http://127.0.0.1:7880` / `wss://tela.<domínio>` |
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | mesmo par do `livekit.yaml` (secret ≥ 32) |
-| `REDIS_URL` / `REDIS_KEY_PREFIX` | `redis://127.0.0.1:6379` (recomendado) / `suburbio:site:` |
+| `REDIS_URL` / `REDIS_KEY_PREFIX` | `redis://127.0.0.1:6379` (recomendado; **obrigatório** com `LIVEKIT_ENABLED=true`) / `suburbio:site:` |
 
 ### Bot (`suburbio-bot\.env`)
 
@@ -382,7 +383,7 @@ O site exige HTTPS em produção (`AUTH_URL`), e o LiveKit exige `wss://`. Sem c
 | Serviço | Uso | Obrigatório? | Se o Redis cair |
 | --- | --- | --- | --- |
 | API | nonce anti-replay do HMAC, rate limit e locks (`suburbio-api:`) | **Sim** | Não inicia sem Redis. Já em execução: `/ready` → 503 e todas as chamadas internas (site, bot, bridge) são recusadas, sem fallback permissivo |
-| Site | rate limit, locks e salas de `/tela` (`suburbio:site:`) | Não (recomendado) | `/api/ready` continua 200 com `redis: down`. O rate limit passa para a memória do processo e o `/tela` fica indisponível. Sem `REDIS_URL`, opera em modo instância única |
+| Site | rate limit, locks e salas de `/tela` (`suburbio:site:`) | Só com transmissão ligada (recomendado sempre) | Sem transmissão: `/api/ready` continua 200 com `redis: down` e o rate limit passa para a memória do processo. Com `LIVEKIT_ENABLED=true`: criar/entrar em salas responde "Transmissão indisponível" e `/api/ready` → 503 (salas nunca ficam na memória) |
 | Bot | não usa | — | Indireto: as chamadas à API falham e a outbox pausa (os eventos ficam guardados na API) |
 
 No Windows, use um servidor compatível com Redis que suporte **Lua (`EVAL`)**, usado por API e site. Recomendação: **Memurai**, como serviço Windows. Confira a licença: a edição Developer não serve para produção. Configuração mínima (`memurai.conf`):
@@ -533,7 +534,7 @@ Register-ScheduledTask -TaskName 'Suburbio PM2' -Action $action -Trigger $trigge
 | Serviço | Liveness | Readiness |
 | --- | --- | --- |
 | API | `GET http://127.0.0.1:3000/live` | `GET http://127.0.0.1:3000/ready` (= `/health`): PostgreSQL e Redis; 503 se algum cair |
-| Site | `GET http://127.0.0.1:3002/api/health` | `GET http://127.0.0.1:3002/api/ready`: env válida e API respondendo; Redis fora não derruba |
+| Site | `GET http://127.0.0.1:3002/api/health` | `GET http://127.0.0.1:3002/api/ready`: env válida e API respondendo; com transmissão ligada, também Redis e API da LiveKit. Sem transmissão, Redis fora não derruba |
 | Bot | `GET http://127.0.0.1:3101/health` | `GET http://127.0.0.1:3101/ready`: gateway do Discord e SQLite |
 
 ```powershell
