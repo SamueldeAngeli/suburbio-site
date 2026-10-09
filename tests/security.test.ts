@@ -69,11 +69,31 @@ describe('Configuração e limites', () => {
       ),
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   });
-  it.each(['https://evil.example', '//evil.example', '/\\evil.example', '/api/auth/signout'])(
-    'bloqueia retorno aberto %s',
-    (url) => expect(safeReturnTo(url)).toBe('/minha-conta'),
-  );
-  it('preserva retorno interno administrativo', () => expect(safeReturnTo('/admin/orders')).toBe('/admin/orders'));
+  it.each([
+    'https://evil.example',
+    '//evil.example',
+    '/\\evil.example',
+    '/api/auth/signout',
+    '/minha-conta/../api/auth/signout',
+    '/minha-conta//evil.example',
+    '/minha-conta?next=https://evil.example',
+    '/tela?room=ABCDEF1234&x=1',
+    '/tela?room=https://evil.example',
+    '/tela/../admin',
+    '/minha-conta%2F%2Fevil.example',
+    'javascript:alert(1)',
+    '',
+    null,
+  ])('bloqueia retorno aberto %s', (url) => expect(safeReturnTo(url)).toBe('/minha-conta'));
+  it.each([
+    '/admin',
+    '/admin/orders',
+    '/minha-conta',
+    '/minha-conta/afiliado',
+    '/minha-conta/pedidos/0b5f5a8e-1c1e-4d8a-9c3f-2b3a4c5d6e7f',
+    '/tela',
+    '/tela?room=ABCDEF1234',
+  ])('preserva retorno interno %s', (url) => expect(safeReturnTo(url)).toBe(url));
   it('paginação e filtros são normalizados no servidor', () =>
     expect(
       listQuerySchema.parse({ page: '2', pageSize: '25', q: ' cidadão ', from: '2026-09-01', to: '2026-09-26' }),

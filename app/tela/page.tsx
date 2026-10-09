@@ -17,8 +17,17 @@ function screenConfig() {
   }
 }
 
-export default async function ScreenPage() {
-  if (!(await currentSession())) redirect('/login?returnTo=/tela');
+export default async function ScreenPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  if (!(await currentSession())) {
+    // Link de convite (/tela?room=CODE) preserva a sala através do login.
+    const room = (await searchParams).room;
+    const target = typeof room === 'string' && /^[A-F0-9]{10}$/.test(room) ? `/tela?room=${room}` : '/tela';
+    redirect(`/login?returnTo=${encodeURIComponent(target)}`);
+  }
   const config = screenConfig();
   if (!config)
     return (

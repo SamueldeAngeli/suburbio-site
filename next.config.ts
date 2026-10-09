@@ -1,8 +1,12 @@
 import type { NextConfig } from 'next';
+import { wwwRedirects } from './lib/canonical';
 const config: NextConfig = {
   images: { unoptimized: true },
   poweredByHeader: false,
   experimental: { authInterrupts: true },
+  async redirects() {
+    return wwwRedirects(process.env.AUTH_URL);
+  },
   async headers() {
     return [
       {

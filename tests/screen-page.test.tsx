@@ -15,6 +15,7 @@ vi.mock('@/components/screen/screen-preview', () => ({
   ScreenPreview: ({ maxCapacity }: { maxCapacity: number }) => <div>UI de transmissão · {maxCapacity}</div>,
 }));
 import ScreenPage from '@/app/tela/page';
+const noParams = { searchParams: Promise.resolve({}) };
 
 beforeEach(() => m.session.mockResolvedValue({ user: { discordId: '123456789012345678' } }));
 afterEach(() => {
@@ -24,7 +25,7 @@ afterEach(() => {
 
 it('transmissão desligada mostra indisponível sem montar a UI de mídia', async () => {
   m.env.mockReturnValue({ LIVEKIT_ENABLED: false });
-  render(await ScreenPage());
+  render(await ScreenPage(noParams));
   expect(screen.getByText('Transmissão indisponível')).toBeTruthy();
   expect(screen.queryByText(/UI de transmissão/)).toBeNull();
 });
@@ -33,20 +34,34 @@ it('configuração inválida também vira indisponível, sem stack trace', async
   m.env.mockImplementation(() => {
     throw new Error('Configuração ausente ou inválida: LIVEKIT_API_SECRET');
   });
-  render(await ScreenPage());
+  render(await ScreenPage(noParams));
   expect(screen.getByText('Transmissão indisponível')).toBeTruthy();
   expect(document.body.textContent).not.toContain('LIVEKIT_API_SECRET');
 });
 
 it('ligada, entrega à UI só a capacidade máxima (nenhum segredo)', async () => {
   m.env.mockReturnValue({ LIVEKIT_ENABLED: true, LIVEKIT_ROOM_MAX_PARTICIPANTS: 6, LIVEKIT_API_SECRET: 'segredo' });
-  render(await ScreenPage());
+  render(await ScreenPage(noParams));
   expect(screen.getByText('UI de transmissão · 6')).toBeTruthy();
   expect(document.body.textContent).not.toContain('segredo');
 });
 
 it('sem sessão redireciona ao login', async () => {
   m.session.mockResolvedValue(null);
-  await expect(ScreenPage()).rejects.toThrow('NEXT_REDIRECT');
-  expect(m.redirect).toHaveBeenCalledWith('/login?returnTo=/tela');
+  await expect(ScreenPage(noParams)).rejects.toThrow('NEXT_REDIRECT');
+  expect(m.redirect).toHaveBeenCalledWith('/login?returnTo=%2Ftela');
+});
+
+it('link de convite sem sessão preserva o código da sala no retorno', async () => {
+  m.session.mockResolvedValue(null);
+  await expect(ScreenPage({ searchParams: Promise.resolve({ room: 'ABCDEF1234' }) })).rejects.toThrow('NEXT_REDIRECT');
+  expect(m.redirect).toHaveBeenCalledWith('/login?returnTo=%2Ftela%3Froom%3DABCDEF1234');
+});
+
+it('código de sala inválido não entra no retorno', async () => {
+  m.session.mockResolvedValue(null);
+  await expect(ScreenPage({ searchParams: Promise.resolve({ room: '//evil.example' }) })).rejects.toThrow(
+    'NEXT_REDIRECT',
+  );
+  expect(m.redirect).toHaveBeenCalledWith('/login?returnTo=%2Ftela');
 });

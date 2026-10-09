@@ -73,8 +73,12 @@ export async function readJson(request: Request, maxBytes = 4096): Promise<unkno
     throw new SiteError('INVALID_INPUT', 400);
   }
 }
+// Somente caminhos internos conhecidos: nada de host, esquema, `//`, `\` ou query arbitrária.
+// A única query aceita é o código de sala de /tela, para o link compartilhado sobreviver ao login.
+const RETURN_PATH = /^\/(?:admin|minha-conta)(?:\/[a-zA-Z0-9_-]{1,64}){0,6}$/;
+const SCREEN_RETURN = /^\/tela(?:\?room=[A-F0-9]{10})?$/;
 export function safeReturnTo(value: unknown) {
-  if (typeof value !== 'string' || !/^\/(?:admin(?:\/[a-zA-Z0-9_-]+)*|minha-conta|tela)$/.test(value))
+  if (typeof value !== 'string' || value.length > 256 || !(RETURN_PATH.test(value) || SCREEN_RETURN.test(value)))
     return '/minha-conta';
   return value;
 }

@@ -35,7 +35,7 @@ export default async function Login({
         <span className="admin-kicker">ACESSO SEGURO</span>
         <h2>Entre no Subúrbio.</h2>
         <p>
-          {params.returnTo === '/tela'
+          {typeof params.returnTo === 'string' && /^\/tela(?:\?|$)/.test(params.returnTo)
             ? 'Entre com Discord para criar ou participar de uma transmissão.'
             : 'Use sua conta Discord para acessar seu perfil e acompanhar seus benefícios.'}
         </p>

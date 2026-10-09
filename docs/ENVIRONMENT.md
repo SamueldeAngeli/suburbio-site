@@ -8,7 +8,7 @@ Nenhum segredo usa `NEXT_PUBLIC_`. `npm run verify:client` falha se nome ou valo
 | --- | --- | --- |
 | `NODE_ENV` | sempre | `production` na VPS (o PM2 define) |
 | `AUTH_ENABLED` | — | `true` liga login. Valida todo o grupo abaixo |
-| `AUTH_URL` | auth | Origem pública exata do site; HTTPS em produção |
+| `AUTH_URL` | auth | Origem pública canônica do site; HTTPS em produção (`https://suburbioroleplay.com`, sem www). Base do Auth.js (callback, cookies, redirect pós-login), `metadataBase` e redirect www → raiz. Ver [PRODUCTION_DOMAINS.md](PRODUCTION_DOMAINS.md) |
 | `AUTH_SECRET` | auth | ≥ 32 caracteres aleatórios |
 | `AUTH_SECRET_PREVIOUS` | rotação | ≥ 32; remover após 8h (limite absoluto de sessão) |
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | auth | Aplicação OAuth do Discord (secret ≥ 16) |
