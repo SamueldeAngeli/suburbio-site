@@ -1207,6 +1207,39 @@
   font-size: 12px;
   margin: 0;
 }
+.citizen-character-details {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.citizen-character-details dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 12px 0 18px;
+  font-size: 13px;
+}
+.citizen-character-details dt {
+  color: #91b5c9;
+}
+.citizen-character-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.citizen-character-details h4 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.citizen-character-details ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: grid;
+  gap: 4px;
+}
 .screen-audio-status {
   display: flex;
   flex-wrap: wrap;

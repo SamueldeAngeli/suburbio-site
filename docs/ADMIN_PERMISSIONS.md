@@ -21,3 +21,27 @@ Cargos Discord (2026-10-03): implementação aprovada no código da API, migrati
 
 ## Afiliados — 2026-10-04
 AFFILIATES_READ, AFFILIATES_MANAGE, AFFILIATES_PAYOUT_READ e AFFILIATES_PAYOUT_MANAGE. Sem concessão automática ao Discord OWNER, Staff ou Suporte; SYSTEM_OWNER preservado. Payout registra transferência manual externa, com confirmação, idempotência, observação, compensação de débitos e auditoria.
+
+## Cargos Discord — matriz definitiva (2026-10-09)
+
+Fonte: `D:/api suburbio/src/modules/admin/discord-role-matrix.ts`, aplicada pelo SYSTEM_OWNER com
+`npm run admin:discord-roles -- --actor <discordId> [--apply]` (dry-run padrão; produção exige
+`APPLY_CONFIRM=<POSTGRES_DATABASE>`). Grava via `saveMapping`: motivo, auditoria `admin.discord.mapping.changed` e outbox.
+
+| Cargo | Role ID | Capabilities |
+| --- | --- | --- |
+| Owner | 876948888114839626 | todas as 37 (inclusive cupons owner-only) |
+| COO | 1507491888314449960 | 32: todas exceto COUPONS_CREATE/UPDATE/DISABLE, ADMINS_MANAGE, ADMIN_PERMISSIONS_MANAGE |
+| Community Manager | 876948888114839625 | DASHBOARD_READ, PLAYERS_READ, ALLOWLIST_READ, ALLOWLIST_REVOKE, PUNISHMENTS_READ, PUNISHMENTS_WRITE, TICKETS_READ, TICKETS_MANAGE, AUDIT_READ, DISCORD_READ |
+| Dev | 876948888085467199 | DASHBOARD_READ, PLAYERS_READ, SERVICES_READ, SETTINGS_READ, AUDIT_READ, DISCORD_READ |
+| Staff | 876948888085467204 | DASHBOARD_READ, PLAYERS_READ, ALLOWLIST_READ, ALLOWLIST_REVOKE, PUNISHMENTS_READ, PUNISHMENTS_WRITE, TICKETS_READ, TICKETS_MANAGE |
+| Suporte | 876948888085467202 | DASHBOARD_READ, PLAYERS_READ, ALLOWLIST_READ, TICKETS_READ |
+
+Regras aplicadas no backend:
+
+- Todo mapping persiste `is_owner=false`; `saveMapping` recusa `isOwner=true` e a resolução ignora `is_owner` legado.
+- COUPONS_CREATE/UPDATE/DISABLE só podem estar no mapping do role 876948888114839626 (`COUPON_OWNER_ROLE_ID`); qualquer outro role_id é recusado e, se existir no banco, não concede.
+- Nenhum cargo resolve `isSystemOwner=true`. SYSTEM_OWNER é a conta persistida (bootstrap), autoridade raiz e única que altera mappings.
+- Vários cargos = união. Remoção do cargo, saída da guild ou Discord indisponível retiram o acesso derivado (refresh `DISCORD_ROLE_REFRESH_SECONDS`, lease de 60 s na API); mapping desativado retira na hora.
+- Lacunas conhecidas: sem capability de auditoria parcial nem de configuração "técnica"; categorias ficam sob PRODUCTS_*; a tela de reembolsos exige REFUNDS_MANAGE; ADMINS_MANAGE, ORDERS_MANAGE, PUNISHMENTS_WRITE, REFUNDS_READ, SETTINGS_WRITE e TICKETS_* ainda não são exigidas por nenhuma rota.
+- Token Discord fica só na memória do processo do site: após restart/deploy, admins por cargo precisam entrar de novo.

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CharacterCards } from '@/components/account/character-cards';
+import { CharacterCards, CharacterSlots } from '@/components/account/character-cards';
 import { CryptoBalance } from '@/components/site/crypto-balance';
 import { Crown, ShoppingBag, Users, ArrowUpRight } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -9,7 +9,6 @@ import { remainingLabel } from '@/lib/entitlements';
 import { orderStatusLabel } from '@/lib/api/order-contracts';
 import { commerceAmount } from '@/lib/commerce-amount';
 import { EmptyState } from '@/components/account/empty-state';
-import { SlotsSummary } from '@/components/commerce-preparation';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Minha conta — Subúrbio RP', robots: { index: false, follow: false } };
 export default async function Account() {
@@ -102,12 +101,12 @@ export default async function Account() {
               title="Cada história, uma identidade."
               description={
                 characterData
-                  ? 'Nenhum personagem vinculado à sua conta.'
+                  ? 'Nenhum personagem na cidade ainda.'
                   : 'Os dados dos seus personagens ainda não estão disponíveis.'
               }
             />
           )}
-          <SlotsSummary />
+          <CharacterSlots slots={characterData?.slots} />
         </section>
         <section className="citizen-card citizen-recent">
           <div className="citizen-card-top">

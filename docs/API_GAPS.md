@@ -228,9 +228,9 @@ Cargos Discord (2026-10-03): implementação aprovada no código da API, migrati
 
 ## Conta e transmissão — atualização 2026-10-04
 
-Resolvidos no código da API: leitura de saldo da carteira autoritativa por conta (/internal/site/me/crypto) e personagens registrados vinculados (/internal/site/me/characters), via HMAC/BFF. Ativação real pendente de ambiente API atualizado + configuração BFF.
+Resolvidos no código da API: leitura de saldo da carteira autoritativa por conta (/internal/site/me/crypto) e perfil real do QBCore (/internal/site/me/characters, fonte QBCORE: personagens, emprego/cargo, gang, dinheiro/banco, telefone de charinfo, veículos, casas/apartamentos e slots de qb_character_slots), via HMAC/BFF. Dono = Discord verificado → player → license (identidade central); o site nunca envia citizenid e nunca acessa a MariaDB. Formato JSON inesperado = indisponível. Contrato: D:/api suburbio/docs/HTTP_CONTRACTS.md. Pendente de validação nos recursos instalados na VPS: semântica de telefone (charinfo.phone vs ry_phone), state dos veículos (qb-garages 0/1/2) e slots (qb_character_slots). Grupos/VIP do jogo (qb_character_groups) ainda não integrados.
 
-WAITING_FOR_API: slots efetivos e sua elegibilidade/compensação; fila VIP; presentes. WAITING_FOR_SITE_ROOMS/SFU: CreateRoom/JoinRoom/RoomToken/LeaveRoom, mídia e participantes; não dependem da API central. Personagens REGISTERED não equivalem a sincronização live QBCore. Auditoria do arquivo qb-multicharacter.zip encontrou default 5 + overrides por license, insuficientes para declarar estado efetivo implantado. Ver CRYPTO_SCREEN_2026-10-04.md.
+WAITING_FOR_API: slots efetivos e sua elegibilidade/compensação; fila VIP; presentes. WAITING_FOR_SITE_ROOMS/SFU: CreateRoom/JoinRoom/RoomToken/LeaveRoom, mídia e participantes; não dependem da API central. Auditoria do arquivo qb-multicharacter.zip encontrou default 5 + overrides por license, insuficientes para declarar estado efetivo implantado. Ver CRYPTO_SCREEN_2026-10-04.md.
 
 
 ## Afiliados — 2026-10-04
