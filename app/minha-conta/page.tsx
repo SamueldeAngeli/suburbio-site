@@ -106,7 +106,10 @@ export default async function Account() {
               }
             />
           )}
-          <CharacterSlots slots={characterData?.slots} />
+          <CharacterSlots
+            used={characterData ? characterData.items.length : null}
+            configured={characterData?.configuredCharacterSlots}
+          />
         </section>
         <section className="citizen-card citizen-recent">
           <div className="citizen-card-top">

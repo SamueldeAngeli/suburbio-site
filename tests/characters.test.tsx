@@ -30,12 +30,11 @@ const character: Character = {
   job: { name: 'police', label: 'Polícia', grade: 'Cabo', gradeLevel: 2, onDuty: true },
   gang: null,
   money: { cash: 150, bank: 9800.5 },
-  vehicles: [
-    { plate: 'ABC1234', model: 'sultan', garage: 'pillbox', state: 'GARAGED', fuel: 80, engine: 95, body: 100 },
-  ],
+  vehicles: [{ plate: 'ABC1234', model: 'sultan', state: 'GARAGED' }],
   properties: [{ type: 'APARTMENT', name: 'Alta Street' }],
 };
 const discordId = '123456789012345678';
+const payload = { source: 'QBCORE', configuredCharacterSlots: 5, items: [character] };
 beforeEach(() => {
   vi.clearAllMocks();
   m.session.mockResolvedValue({ user: { discordId } });
@@ -43,18 +42,51 @@ beforeEach(() => {
 afterEach(cleanup);
 
 it('contrato aceita só a fonte QBCore e recusa o formato antigo', () => {
-  expect(charactersSchema.safeParse({ source: 'QBCORE', slots: null, items: [character] }).success).toBe(true);
+  expect(charactersSchema.safeParse(payload).success).toBe(true);
   expect(
     charactersSchema.safeParse({ source: 'REGISTERED', items: [{ citizenId: 'X', firstName: null, lastName: null }] })
       .success,
+  ).toBe(false);
+  expect(
+    charactersSchema.safeParse({
+      ...payload,
+      items: [{ ...character, vehicles: [{ plate: 'X', model: null, state: 'STOLEN' }] }],
+    }).success,
   ).toBe(false);
 });
 
 it('detalhes exibem dados reais do personagem', () => {
   render(<CharacterDetails items={[character]} />);
-  for (const text of ['Ana Souza', 'ABC00001', 'Polícia · Cabo', '5551234', 'ABC1234', 'Apartamento: Alta Street'])
+  for (const text of [
+    'Ana Souza',
+    'ABC00001',
+    'Polícia · Cabo',
+    'Telefone5551234',
+    'ABC1234 sultan · Na garagem',
+    'Apartamento: Alta Street',
+  ])
     expect(document.body.textContent).toContain(text);
   expect(document.body.textContent).toContain('R$');
+});
+
+it('estado da garagem: 0/1/2 rotulados e inesperado indisponível', () => {
+  render(
+    <CharacterDetails
+      items={[
+        {
+          ...character,
+          vehicles: [
+            { plate: 'A', model: null, state: 'OUT' },
+            { plate: 'B', model: null, state: 'GARAGED' },
+            { plate: 'C', model: null, state: 'IMPOUNDED' },
+            { plate: 'D', model: null, state: 'UNKNOWN' },
+          ],
+        },
+      ]}
+    />,
+  );
+  for (const label of ['Fora da garagem', 'Na garagem', 'Apreendido', 'Estado indisponível'])
+    expect(document.body.textContent).toContain(label);
 });
 
 it('campos indisponíveis aparecem como indisponíveis, nunca como zero ou lista vazia', () => {
@@ -64,25 +96,28 @@ it('campos indisponíveis aparecem como indisponíveis, nunca como zero ou lista
     />,
   );
   expect(screen.getAllByText('Indisponível').length).toBeGreaterThanOrEqual(4);
+  expect(document.body.textContent).toContain('TelefoneIndisponível');
   expect(screen.getByText('Veículos indisponíveis no momento.')).toBeTruthy();
   expect(screen.getByText('Propriedades indisponíveis no momento.')).toBeTruthy();
   expect(document.body.textContent).not.toContain('R$');
   expect(document.body.textContent).not.toContain('Nenhum veículo');
 });
 
-it('slots reais ou indisponíveis', () => {
-  render(<CharacterSlots slots={{ total: 3, used: 1 }} />);
-  expect(screen.getByText('1 de 3 slots em uso')).toBeTruthy();
+it('slots: personagens em uso sobre o limite configurado do servidor', () => {
+  render(<CharacterSlots used={2} configured={5} />);
+  expect(screen.getByText('2 de 5 slots configurados no servidor')).toBeTruthy();
+  expect(document.body.textContent).not.toMatch(/compr|adquir/i);
   cleanup();
-  render(<CharacterSlots slots={null} />);
+  render(<CharacterSlots used={null} configured={undefined} />);
   expect(screen.getByText('Quantidade de slots indisponível no momento.')).toBeTruthy();
 });
 
 it('página consulta somente o Discord da sessão', async () => {
-  m.characters.mockResolvedValue({ data: { source: 'QBCORE', slots: { total: 2, used: 1 }, items: [character] } });
+  m.characters.mockResolvedValue({ data: payload });
   render(await Characters());
   expect(m.characters).toHaveBeenCalledWith(discordId);
   expect(screen.getByText('Ana Souza')).toBeTruthy();
+  expect(screen.getByText('1 de 5 slots configurados no servidor')).toBeTruthy();
 });
 
 it('sem sessão redireciona ao login sem consultar a API', async () => {

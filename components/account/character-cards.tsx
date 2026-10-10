@@ -6,11 +6,12 @@ const UNAVAILABLE = 'Indisponível';
 const money = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
 const fullName = (c: Character) => [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Nome não informado';
+// qb-garages: 0 out, 1 garaged, 2 impound. Qualquer outro valor chega como UNKNOWN.
 const vehicleState = {
   OUT: 'Fora da garagem',
   GARAGED: 'Na garagem',
   IMPOUNDED: 'Apreendido',
-  UNKNOWN: 'Estado desconhecido',
+  UNKNOWN: 'Estado indisponível',
 };
 const role = (r: { label: string; grade: string | null }) => (r.grade ? `${r.label} · ${r.grade}` : r.label);
 
@@ -66,7 +67,6 @@ export function CharacterDetails({ items }: { items: Character[] }) {
               {c.vehicles.map((v, i) => (
                 <li key={`${v.plate}-${i}`}>
                   <strong>{v.plate}</strong> {v.model ?? 'Modelo não informado'} · {vehicleState[v.state]}
-                  {v.garage && v.state === 'GARAGED' ? ` (${v.garage})` : ''}
                 </li>
               ))}
             </ul>
@@ -95,19 +95,21 @@ export function CharacterDetails({ items }: { items: Character[] }) {
   );
 }
 
-export function CharacterSlots({ slots }: { slots: { total: number; used: number } | null | undefined }) {
+// Personagens na cidade + limite configurado no servidor (qb-multicharacter). Não é compra nem
+// concessão individual de slots.
+export function CharacterSlots({ used, configured }: { used: number | null; configured: number | null | undefined }) {
   return (
     <section className="citizen-slots">
       <h2>Slots de personagem</h2>
-      {slots ? (
+      {used !== null && configured ? (
         <>
           <div className="citizen-slots-dots" aria-hidden="true">
-            {Array.from({ length: Math.min(Math.max(slots.total, slots.used), 20) }, (_, i) => (
-              <i key={i} className={i < slots.used ? 'filled' : ''} />
+            {Array.from({ length: Math.min(Math.max(configured, used), 20) }, (_, i) => (
+              <i key={i} className={i < used ? 'filled' : ''} />
             ))}
           </div>
           <p>
-            {slots.used} de {slots.total} {slots.total === 1 ? 'slot em uso' : 'slots em uso'}
+            {used} de {configured} slots configurados no servidor
           </p>
         </>
       ) : (

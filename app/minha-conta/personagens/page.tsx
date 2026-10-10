@@ -45,7 +45,7 @@ export default async function Characters() {
             }
           />
         )}
-        <CharacterSlots slots={data?.slots} />
+        <CharacterSlots used={data ? data.items.length : null} configured={data?.configuredCharacterSlots} />
       </section>
     </main>
   );

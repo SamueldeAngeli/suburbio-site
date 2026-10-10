@@ -12,6 +12,7 @@ export const characterSchema = z.object({
   slot: z.number().int().nullable(),
   firstName: label.nullable(),
   lastName: label.nullable(),
+  // ry-phone (os_users.phone_number); null = sem conta no telefone ou número vazio.
   phone: z.string().max(20).nullable(),
   job: z.object({ name: label, label, ...grade, onDuty: z.boolean().nullable() }).nullable(),
   gang: z.object({ name: label, label, ...grade }).nullable(),
@@ -21,11 +22,7 @@ export const characterSchema = z.object({
       z.object({
         plate: z.string().max(8),
         model: z.string().max(50).nullable(),
-        garage: z.string().max(50).nullable(),
         state: z.enum(['OUT', 'GARAGED', 'IMPOUNDED', 'UNKNOWN']),
-        fuel: z.number().int().nullable(),
-        engine: z.number().int().nullable(),
-        body: z.number().int().nullable(),
       }),
     )
     .max(100)
@@ -37,7 +34,8 @@ export const characterSchema = z.object({
 });
 export const charactersSchema = z.object({
   source: z.literal('QBCORE'),
-  slots: z.object({ total: z.number().int(), used: z.number().int() }).nullable(),
+  // Limite configurado no qb-multicharacter (Config.DefaultNumberOfCharacters), não concessão individual.
+  configuredCharacterSlots: z.number().int().min(1).max(50),
   items: z.array(characterSchema).max(100),
 });
 export type Character = z.infer<typeof characterSchema>;
