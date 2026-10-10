@@ -3,6 +3,7 @@ import { SuburbioApiClient } from '@/lib/api/client';
 import { AccountService } from '@/lib/api/modules/accounts';
 import { SiteError, errorResponse } from '@/lib/api/errors';
 import { limiter } from '@/lib/server/security';
+import { logEvent } from '@/lib/server/log';
 export async function GET(request: Request) {
   try {
     const session = await currentSession();
@@ -14,6 +15,13 @@ export async function GET(request: Request) {
       new SuburbioApiClient().affiliateAccess(id),
       new AccountService().resolve(id),
     ]);
+    // Falha fechada (botão oculto), mas diagnosticável: só o código, sem identificadores nem segredos.
+    // 403 é o caso normal de quem não é admin e não é registrado.
+    if (admin.status === 'rejected' && !(admin.reason instanceof SiteError && admin.reason.status === 403))
+      logEvent('warn', 'access.admin_unresolved', {
+        code: admin.reason instanceof SiteError ? admin.reason.code : 'INTERNAL_ERROR',
+        status: admin.reason instanceof SiteError ? admin.reason.status : 500,
+      });
     return Response.json(
       {
         affiliate: affiliate.status === 'fulfilled' && affiliate.value.data.affiliate === true,

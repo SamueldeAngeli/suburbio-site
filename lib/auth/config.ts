@@ -1,6 +1,7 @@
 import 'server-only';
 import type { NextAuthConfig } from 'next-auth';
 import { discordMembership } from './discord-membership';
+import { authLogger } from './logger';
 import Discord from 'next-auth/providers/discord';
 import { discordAvatar, safeAvatar } from '@/lib/public-profile';
 import { serverEnv, type ServerEnv } from '@/lib/server/env';
@@ -21,6 +22,9 @@ export function createAuthConfig(env: ServerEnv = serverEnv()): NextAuthConfig {
           Discord({
             clientId: env.DISCORD_CLIENT_ID!,
             clientSecret: env.DISCORD_CLIENT_SECRET!,
+            // O Discord devolve iss=https://discord.com no callback (RFC 9207); sem issuer explícito o
+            // Auth.js compara com o padrão https://authjs.dev e rejeita o login (CallbackRouteError).
+            issuer: 'https://discord.com',
             authorization: { params: { scope: 'identify guilds.members.read' } },
             // Discord's documented confidential web flow supports state; PKCE is not documented there.
             checks: ['state'],
@@ -87,12 +91,7 @@ export function createAuthConfig(env: ServerEnv = serverEnv()): NextAuthConfig {
           discordMembership.forget(message.token.discordId);
       },
     },
-    logger: {
-      error() {
-        console.error(JSON.stringify({ module: 'auth', result: 'failed' }));
-      },
-      warn() {},
-      debug() {},
-    },
+    // Preserva tipo/código/causa (sanitizados) para diagnóstico; nunca segredos do OAuth.
+    logger: authLogger,
   };
 }
