@@ -12,7 +12,7 @@ export const characterSchema = z.object({
   slot: z.number().int().nullable(),
   firstName: label.nullable(),
   lastName: label.nullable(),
-  // ry-phone (os_users.phone_number); null = sem conta no telefone ou número vazio.
+  // ry-phone (ry_phone_user_data 'ry-phone:number'); null = ausente, inválido ou ambíguo.
   phone: z.string().max(20).nullable(),
   job: z.object({ name: label, label, ...grade, onDuty: z.boolean().nullable() }).nullable(),
   gang: z.object({ name: label, label, ...grade }).nullable(),
