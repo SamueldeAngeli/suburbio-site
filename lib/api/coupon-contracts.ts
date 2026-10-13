@@ -6,6 +6,13 @@ export const couponInput = z
       .trim()
       .toUpperCase()
       .regex(/^[A-Z0-9_-]{3,32}$/),
+    fixedCurrency: z.enum(['BRL', 'CRYPTO']).optional(),
+    origins: z
+      .array(z.enum(['SITE', 'INGAME']))
+      .min(1)
+      .max(2)
+      .optional(),
+    minimumCrypto: z.number().int().min(0).max(100000000).optional(),
     discountType: z.enum(['percentage', 'fixed']),
     discountValue: z.number().int().min(0).max(100000000),
     minimumAmountMinor: z.number().int().min(0).max(100000000),
@@ -43,6 +50,19 @@ export const couponSnapshotSchema = z.object({
   netAmountMinor: z.number().int(),
 });
 export const couponMetricsSchema = z.object({
+  dimensions: z
+    .array(
+      z.object({
+        currency: z.enum(['BRL', 'CRYPTO']),
+        origin: z.enum(['SITE', 'IN_GAME']),
+        sales: z.number().int(),
+        gross: z.string(),
+        discount: z.string(),
+        net: z.string(),
+        commission: z.string().nullable(),
+      }),
+    )
+    .optional(),
   usesCount: z.number().int(),
   grossSalesMinor: z.string(),
   discountGrantedMinor: z.string(),

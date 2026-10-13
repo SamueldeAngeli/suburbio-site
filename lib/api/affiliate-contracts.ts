@@ -11,6 +11,11 @@ export const affiliateInput = z
     name: z.string().trim().min(2).max(100),
     couponName: z.string().trim().min(2).max(100),
     code: affiliateCode,
+    couponOrigins: z
+      .array(z.enum(['SITE', 'INGAME']))
+      .min(1)
+      .max(2)
+      .optional(),
     discountPercent: z.number().int().min(0).max(99),
     commissionPercent: z.number().int().min(0).max(100),
     holdDays: z.number().int().min(0).max(365),
@@ -59,6 +64,19 @@ export const saleSchema = z.object({
   commissionRateApplied: z.number().int(),
 });
 export const dashboardSchema = z.object({
+  dimensions: z
+    .array(
+      z.object({
+        currency: z.enum(['BRL', 'CRYPTO']),
+        origin: z.enum(['SITE', 'IN_GAME']),
+        sales: z.number().int(),
+        gross: z.string(),
+        discount: z.string(),
+        net: z.string(),
+        commission: z.string().nullable(),
+      }),
+    )
+    .optional(),
   affiliate: publicAffiliate,
   period: periodSchema,
   asOf: z.iso.datetime(),

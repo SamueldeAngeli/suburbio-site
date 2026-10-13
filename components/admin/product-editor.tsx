@@ -55,6 +55,18 @@ export function ProductEditor({
       description: String(form.get('description')),
       categoryId: String(form.get('categoryId')),
       imageUrl: String(form.get('imageUrl')),
+      gallery: String(form.get('gallery') ?? '')
+        .split(/\r?\n/)
+        .map((v) => v.trim())
+        .filter(Boolean),
+      features: String(form.get('features') ?? '')
+        .split(/\r?\n/)
+        .map((v) => v.trim())
+        .filter(Boolean),
+      featured: form.has('featured'),
+      location: String(form.get('location') ?? ''),
+      trunkKg: form.get('trunkKg') ? Number(form.get('trunkKg')) : null,
+      visualizacao: { tipo: String(form.get('visualizacao') ?? 'nenhuma') },
       status: String(form.get('status')),
       displayOrder: Number(form.get('displayOrder')),
       salesChannels: form.getAll('salesChannels').map(String),
@@ -106,6 +118,36 @@ export function ProductEditor({
   }
   return (
     <form onSubmit={save} className="admin-editor">
+      <fieldset disabled={busy}>
+        <legend>Apresentação na Central VIP</legend>
+        <label>
+          Galeria (uma URL HTTPS por linha)
+          <textarea name="gallery" defaultValue={product?.gallery?.join('\n') ?? ''} />
+        </label>
+        <label>
+          Características (uma por linha)
+          <textarea name="features" defaultValue={product?.features?.join('\n') ?? ''} />
+        </label>
+        <label>
+          Localização
+          <input name="location" maxLength={300} defaultValue={product?.location ?? ''} />
+        </label>
+        <label>
+          Capacidade do baú (kg)
+          <input type="number" name="trunkKg" min="0" step="0.1" defaultValue={product?.trunkKg ?? ''} />
+        </label>
+        <label>
+          <input name="featured" type="checkbox" defaultChecked={product?.featured ?? false} /> Destaque
+        </label>
+        <label>
+          Visualização
+          <select name="visualizacao" defaultValue={product?.visualizacao?.tipo ?? 'nenhuma'}>
+            <option value="nenhuma">Imagem e galeria</option>
+            <option value="360">360 (usa galeria nesta versão)</option>
+            <option value="3d">3D (usa imagem nesta versão)</option>
+          </select>
+        </label>
+      </fieldset>
       <fieldset disabled={busy}>
         <legend>Informações do benefício</legend>
         <div className="admin-form-grid">

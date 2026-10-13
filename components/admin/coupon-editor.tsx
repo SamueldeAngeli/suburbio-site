@@ -18,6 +18,7 @@ export function CouponEditor({
   const router = useRouter(),
     key = useRef(''),
     last = useRef('');
+  const [currency, setCurrency] = useState(coupon?.fixedCurrency ?? 'BRL');
   const [type, setType] = useState(coupon?.discountType ?? 'percentage'),
     [scope, setScope] = useState(coupon?.scope ?? 'ALL');
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -35,7 +36,11 @@ export function CouponEditor({
     const data = {
       code: String(form.get('code')),
       discountType: type,
-      discountValue: type === 'fixed' ? Math.round(number('discountValue') * 100) : number('discountValue'),
+      fixedCurrency: currency,
+      origins: form.getAll('origins').map(String),
+      minimumCrypto: number('minimumCrypto'),
+      discountValue:
+        type === 'fixed' && currency === 'BRL' ? Math.round(number('discountValue') * 100) : number('discountValue'),
       minimumAmountMinor: Math.round(number('minimum') * 100),
       startsAt: date('startsAt'),
       expiresAt: date('expiresAt'),
@@ -88,6 +93,35 @@ export function CouponEditor({
         <legend>Regras do cupom</legend>
         <div className="admin-form-grid">
           <label>
+            Moeda para valor fixo
+            <select value={currency} onChange={(e) => setCurrency(e.target.value as 'BRL' | 'CRYPTO')}>
+              <option value="BRL">BRL (reais)</option>
+              <option value="CRYPTO">Crypto</option>
+            </select>
+          </label>
+          <label>
+            <input
+              name="origins"
+              type="checkbox"
+              value="SITE"
+              defaultChecked={(coupon?.origins ?? ['SITE']).includes('SITE')}
+            />{' '}
+            Habilitar no site
+          </label>
+          <label>
+            <input
+              name="origins"
+              type="checkbox"
+              value="INGAME"
+              defaultChecked={coupon?.origins?.includes('INGAME') ?? false}
+            />{' '}
+            Habilitar in-game
+          </label>
+          <label>
+            Compra mínima em Crypto
+            <input name="minimumCrypto" type="number" min="0" step="1" defaultValue={coupon?.minimumCrypto ?? 0} />
+          </label>
+          <label>
             Código
             <input
               name="code"
@@ -115,17 +149,21 @@ export function CouponEditor({
             </select>
           </label>
           <label>
-            {type === 'percentage' ? 'Desconto (%)' : 'Desconto (R$)'}
+            {type === 'percentage' ? 'Desconto (%)' : currency === 'BRL' ? 'Desconto (R$)' : 'Desconto (Crypto)'}
             <input
-              key={type}
+              key={type + currency}
               name="discountValue"
               type="number"
-              min={type === 'percentage' ? 1 : 0.01}
+              min={type === 'percentage' || currency === 'CRYPTO' ? 1 : 0.01}
               max={type === 'percentage' ? 100 : 1000000}
-              step={type === 'percentage' ? 1 : 0.01}
+              step={type === 'percentage' || currency === 'CRYPTO' ? 1 : 0.01}
               required
               defaultValue={
-                coupon ? (coupon.discountType === 'fixed' ? coupon.discountValue / 100 : coupon.discountValue) : 15
+                coupon
+                  ? coupon.discountType === 'fixed' && (coupon.fixedCurrency ?? 'BRL') === 'BRL'
+                    ? coupon.discountValue / 100
+                    : coupon.discountValue
+                  : 15
               }
             />
           </label>

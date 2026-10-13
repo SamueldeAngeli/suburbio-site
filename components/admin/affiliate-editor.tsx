@@ -19,6 +19,7 @@ export function AffiliateEditor({ affiliate: a }: { affiliate?: z.infer<typeof a
       name: text('name'),
       couponName: text('couponName'),
       code: text('code'),
+      couponOrigins: f.getAll('couponOrigins').map(String),
       discountPercent: Number(f.get('discountPercent')),
       commissionPercent: Number(f.get('commissionPercent')),
       holdDays: Number(f.get('holdDays')),
@@ -68,6 +69,24 @@ export function AffiliateEditor({ affiliate: a }: { affiliate?: z.infer<typeof a
       <fieldset disabled={busy}>
         <legend>{a ? 'Editar afiliado' : 'Cadastrar afiliado'}</legend>
         <div className="admin-form-grid">
+          <label>
+            <input
+              name="couponOrigins"
+              type="checkbox"
+              value="SITE"
+              defaultChecked={(a?.couponOrigins ?? ['SITE']).includes('SITE')}
+            />{' '}
+            Cupom válido no site
+          </label>
+          <label>
+            <input
+              name="couponOrigins"
+              type="checkbox"
+              value="INGAME"
+              defaultChecked={a?.couponOrigins?.includes('INGAME') ?? false}
+            />{' '}
+            Cupom válido in-game (sem conversão para comissão em reais)
+          </label>
           <label>
             Nome do afiliado
             <input name="name" required minLength={2} maxLength={100} defaultValue={a?.name} />

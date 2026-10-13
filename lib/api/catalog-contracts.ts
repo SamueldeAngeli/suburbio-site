@@ -23,6 +23,18 @@ export const delivery = z.discriminatedUnion('deliveryType', [
 ]);
 const productBase = z
   .object({
+    gallery: z
+      .array(z.url().refine((v) => new URL(v).protocol === 'https:'))
+      .max(12)
+      .optional(),
+    featured: z.boolean().optional(),
+    location: z.string().max(300).optional(),
+    features: z.array(z.string().max(150)).max(20).optional(),
+    trunkKg: z.number().min(0).max(100000).nullable().optional(),
+    visualizacao: z
+      .object({ tipo: z.enum(['nenhuma', '360', '3d']) })
+      .strict()
+      .optional(),
     allowCustomGifts: z.boolean().optional(),
     name,
     slug,

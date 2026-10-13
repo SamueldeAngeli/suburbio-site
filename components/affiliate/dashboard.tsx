@@ -1,3 +1,4 @@
+import { CommerceDimensions } from '@/components/commerce-dimensions';
 import Link from 'next/link';
 import { Handshake, Ticket, TrendingUp, ArrowUpRight } from 'lucide-react';
 import type { z } from 'zod';
@@ -72,6 +73,7 @@ export function AffiliateDashboard({
           ))}
         </nav>
       </div>
+      <CommerceDimensions rows={data.dimensions} />
       <section className="affiliate-metrics" aria-label="Resumo de comissões">
         {[
           ['Total vendido', moneyMinor(s.soldMinor)],

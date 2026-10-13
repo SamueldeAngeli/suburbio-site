@@ -1,3 +1,4 @@
+import { CommerceDimensions } from '@/components/commerce-dimensions';
 import { notFound, forbidden } from 'next/navigation';
 import { pageAccess } from '@/lib/permissions/guards';
 import { SuburbioApiClient } from '@/lib/api/client';
@@ -31,7 +32,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       {coupon && (
         <div className="admin-metrics">
           <article>
-            <span>Usos aplicados</span>
+            <span>Usos em BRL</span>
             <strong>{coupon.metrics.usesCount}</strong>
           </article>
           <article>
@@ -45,6 +46,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </article>
         </div>
       )}
+      <CommerceDimensions rows={coupon?.metrics.dimensions} />
       {admin.fullAccess && !admin.readOnly && catalog ? (
         <CouponEditor coupon={coupon} products={catalog.products} categories={catalog.categories} />
       ) : (

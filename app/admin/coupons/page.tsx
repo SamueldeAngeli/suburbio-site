@@ -34,7 +34,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
               <tr>
                 <th>Código</th>
                 <th>Desconto</th>
-                <th>Usos</th>
+                <th>Usos em BRL</th>
                 <th>Valor bruto</th>
                 <th>Desconto concedido</th>
                 <th>Vendas líquidas</th>
@@ -48,7 +48,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
                   <td>
                     <Link href={`/admin/coupons/${c.id}`}>{c.code}</Link>
                   </td>
-                  <td>{c.discountType === 'percentage' ? `${c.discountValue}%` : money(String(c.discountValue))}</td>
+                  <td>
+                    {c.discountType === 'percentage'
+                      ? `${c.discountValue}%`
+                      : c.fixedCurrency === 'CRYPTO'
+                        ? c.discountValue.toLocaleString('pt-BR') + ' Crypto'
+                        : money(String(c.discountValue))}
+                  </td>
                   <td>{c.metrics.usesCount}</td>
                   <td>{money(c.metrics.grossSalesMinor)}</td>
                   <td>{money(c.metrics.discountGrantedMinor)}</td>
