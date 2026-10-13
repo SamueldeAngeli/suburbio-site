@@ -94,8 +94,8 @@ export async function PlayerList({
                   <td>{role(p.job)}</td>
                   <td>{role(p.gang)}</td>
                   <td>{p.money ? `${brl(p.money.cash)} / ${brl(p.money.bank)}` : 'Indisponível'}</td>
-                  {/* Presença ainda sem fonte persistida: nunca "offline" presumido. */}
-                  <td>Indisponível</td>
+                  {/* ONLINE = sessão aberta + sinal recente; sem vínculo na API = desconhecido. */}
+                  <td>{p.online === null ? '—' : p.online ? 'Online' : 'Offline'}</td>
                   <td>{p.allowlist ? allowlistLabel[p.allowlist] : 'Sem vínculo na API'}</td>
                   <td>{p.vip === null ? '—' : p.vip ? 'Ativo' : 'Não'}</td>
                   <td>{new Date(p.lastActivity).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</td>

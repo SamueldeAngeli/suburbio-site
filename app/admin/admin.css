@@ -914,3 +914,35 @@
     padding: 18px;
   }
 }
+
+.admin-activity-chart {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(36px, 1fr);
+  gap: 8px;
+  align-items: end;
+  height: 180px;
+  margin: 12px 0 24px;
+  overflow-x: auto;
+}
+.admin-activity-chart > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  min-width: 36px;
+}
+.admin-activity-bar {
+  display: block;
+  width: 70%;
+  min-height: 2px;
+  background: currentColor;
+  opacity: 0.7;
+  border-radius: 3px 3px 0 0;
+}
+.admin-activity-chart small {
+  margin-top: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}

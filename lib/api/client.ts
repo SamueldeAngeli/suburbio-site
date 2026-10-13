@@ -11,6 +11,7 @@ import {
 import { balanceSchema, charactersSchema } from './citizen-contracts';
 import { playerListSchema } from './player-contracts';
 import { adminCryptoSchema } from './crypto-ledger-contracts';
+import { activitySchema } from './activity-contracts';
 import 'server-only';
 import type { Membership } from '@/lib/auth/discord-membership';
 import { randomUUID } from 'node:crypto';
@@ -560,6 +561,24 @@ export class SuburbioApiClient {
     const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25', q });
     if (status) query.set('status', status);
     return this.request(`/internal/site/admins?${query}`, adminListSchema);
+  }
+  playerActivity(actorDiscordId: string, playerId: string, range: { from: string; to: string } | null, page = 1) {
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    if (
+      !discordIdSchema.safeParse(actorDiscordId).success ||
+      !uuid.safeParse(playerId).success ||
+      !Number.isInteger(page) ||
+      page < 1 ||
+      page > 100000 ||
+      (range && (!day.test(range.from) || !day.test(range.to)))
+    )
+      throw new SiteError('INVALID_INPUT', 400);
+    const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25' });
+    if (range) {
+      query.set('from', range.from);
+      query.set('to', range.to);
+    }
+    return this.request(`/internal/site/players/${playerId}/activity?${query}`, activitySchema);
   }
   playerCrypto(actorDiscordId: string, playerId: string, page = 1) {
     if (

@@ -19,7 +19,7 @@ export const playerListSchema = z.object({
         job: named.nullable(),
         gang: named.nullable(),
         money: z.object({ cash: z.number(), bank: z.number() }).nullable(),
-        online: z.null(),
+        online: z.boolean().nullable(),
         allowlist: z.enum(['active', 'revoked', 'none']).nullable(),
         vip: z.boolean().nullable(),
         lastActivity: z.iso.datetime(),

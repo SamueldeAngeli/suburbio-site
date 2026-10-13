@@ -4,15 +4,18 @@ export default async function PlayerDetail({
   searchParams,
 }: {
   params: Promise<{ playerId: string }>;
-  searchParams: Promise<{ tab?: string | string[]; page?: string }>;
+  searchParams: Promise<{ tab?: string | string[]; page?: string; from?: string; to?: string }>;
 }) {
   const { playerId } = await params;
+  const query = await searchParams;
   return (
     <DetailPage
       kind="players"
       id={playerId}
-      tab={(await searchParams).tab}
-      page={Number((await searchParams).page ?? 1)}
+      tab={query.tab}
+      page={Number(query.page ?? 1)}
+      from={typeof query.from === 'string' ? query.from : undefined}
+      to={typeof query.to === 'string' ? query.to : undefined}
     />
   );
 }

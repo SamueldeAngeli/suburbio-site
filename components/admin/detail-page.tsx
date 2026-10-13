@@ -6,8 +6,10 @@ import { pageAccess } from '@/lib/permissions/guards';
 import { AccessUnavailable, GapState } from './states';
 import { PlayerEntitlements } from './player-entitlements';
 import { PlayerCrypto } from './player-crypto';
+import { PlayerActivity } from './player-activity';
 export const playerTabs = [
   'Visão geral',
+  'Atividade',
   'Benefícios',
   'Crypto',
   'Personagens',
@@ -29,11 +31,15 @@ export async function DetailPage({
   id,
   tab,
   page = 1,
+  from,
+  to,
 }: {
   kind: 'players' | 'orders';
   id: string;
   tab?: string | string[];
   page?: number;
+  from?: string;
+  to?: string;
 }) {
   if (!uuid.safeParse(id).success) notFound();
   const path = `/admin/${kind}/${id}`;
@@ -81,6 +87,8 @@ export async function DetailPage({
           <OrderStages admin stage={active} />
         ) : kind === 'players' && active === 'Benefícios' ? (
           <PlayerEntitlements discordId={admin.discordId} playerId={id} page={page} />
+        ) : kind === 'players' && active === 'Atividade' ? (
+          <PlayerActivity discordId={admin.discordId} playerId={id} page={page} from={from} to={to} />
         ) : kind === 'players' && active === 'Crypto' ? (
           <PlayerCrypto discordId={admin.discordId} playerId={id} page={page} />
         ) : (
