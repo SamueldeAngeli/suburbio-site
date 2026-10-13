@@ -8,6 +8,8 @@ export const balanceSchema = z.object({
 const label = z.string().max(60);
 const grade = { grade: label.nullable(), gradeLevel: z.number().nullable() };
 export const characterSchema = z.object({
+  // ID da cidade (players.id). Nunca o slot (cid).
+  cityId: z.number().int(),
   citizenId: z.string().max(11),
   slot: z.number().int().nullable(),
   firstName: label.nullable(),

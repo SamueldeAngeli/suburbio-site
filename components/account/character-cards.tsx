@@ -22,7 +22,7 @@ export function CharacterCards({ items }: { items: Character[] }) {
         <article key={c.citizenId}>
           <Users size={25} />
           <h3>{fullName(c)}</h3>
-          <p>Passaporte {c.citizenId}</p>
+          <p>ID {c.cityId}</p>
           {c.job && <p>{role(c.job)}</p>}
         </article>
       ))}
@@ -38,6 +38,8 @@ export function CharacterDetails({ items }: { items: Character[] }) {
           <Users size={25} />
           <h3>{fullName(c)}</h3>
           <dl>
+            <dt>ID da cidade</dt>
+            <dd>{c.cityId}</dd>
             <dt>Passaporte</dt>
             <dd>{c.citizenId}</dd>
             {c.slot !== null && (

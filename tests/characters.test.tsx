@@ -22,6 +22,7 @@ import Characters from '@/app/minha-conta/personagens/page';
 import { SiteError } from '@/lib/api/errors';
 
 const character: Character = {
+  cityId: 128,
   citizenId: 'ABC00001',
   slot: 1,
   firstName: 'Ana',
@@ -59,6 +60,7 @@ it('detalhes exibem dados reais do personagem', () => {
   render(<CharacterDetails items={[character]} />);
   for (const text of [
     'Ana Souza',
+    'ID da cidade128',
     'ABC00001',
     'Polícia · Cabo',
     'Telefone5551234',

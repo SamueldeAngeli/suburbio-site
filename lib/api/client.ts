@@ -9,6 +9,7 @@ import {
   periodSchema,
 } from './affiliate-contracts';
 import { balanceSchema, charactersSchema } from './citizen-contracts';
+import { playerListSchema } from './player-contracts';
 import 'server-only';
 import type { Membership } from '@/lib/auth/discord-membership';
 import { randomUUID } from 'node:crypto';
@@ -558,6 +559,18 @@ export class SuburbioApiClient {
     const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25', q });
     if (status) query.set('status', status);
     return this.request(`/internal/site/admins?${query}`, adminListSchema);
+  }
+  players(actorDiscordId: string, page = 1, q = '') {
+    if (
+      !discordIdSchema.safeParse(actorDiscordId).success ||
+      !Number.isInteger(page) ||
+      page < 1 ||
+      page > 10000 ||
+      q.length > 100
+    )
+      throw new SiteError('INVALID_INPUT', 400);
+    const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25', q });
+    return this.request(`/internal/site/players?${query}`, playerListSchema);
   }
   admin(actorDiscordId: string, id: string) {
     if (!discordIdSchema.safeParse(actorDiscordId).success || !uuid.safeParse(id).success)
