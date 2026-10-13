@@ -15,6 +15,7 @@ export const playerListSchema = z.object({
           .string()
           .regex(/^\d{17,20}$/)
           .nullable(),
+        discordName: z.string().max(100).nullable(),
         discordVerified: z.boolean().nullable(),
         job: named.nullable(),
         gang: named.nullable(),

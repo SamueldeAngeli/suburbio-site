@@ -22,6 +22,7 @@ const page = {
       accountName: 'conta',
       playerId: '11111111-1111-4111-8111-111111111111',
       discordId: '123456789012345678',
+      discordName: 'Samuel',
       discordVerified: true,
       job: { label: 'Polícia', grade: 'Cabo' },
       gang: null,

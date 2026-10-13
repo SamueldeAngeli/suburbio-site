@@ -946,3 +946,20 @@
   font-size: 11px;
   white-space: nowrap;
 }
+.admin-discord-identity {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.admin-discord-identity img {
+  border-radius: 50%;
+}
+.admin-discord-identity div {
+  display: grid;
+  gap: 2px;
+}
+.admin-timeline {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+}

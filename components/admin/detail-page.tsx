@@ -7,24 +7,25 @@ import { AccessUnavailable, GapState } from './states';
 import { PlayerEntitlements } from './player-entitlements';
 import { PlayerCrypto } from './player-crypto';
 import { PlayerActivity } from './player-activity';
+import {
+  PlayerCharacters,
+  PlayerOverview,
+  PlayerPunishments,
+  PlayerPurchases,
+  PlayerTimeline,
+} from './player-profile-tabs';
+// Ficha do jogador: identidade e Discord na visão geral; pedidos/pagamentos em Compras; timeline e
+// auditoria em Logs. Cada aba carrega só os próprios dados.
 export const playerTabs = [
   'Visão geral',
-  'Atividade',
-  'Benefícios',
-  'Crypto',
   'Personagens',
-  'Identidade',
-  'Allowlist',
+  'Atividade',
+  'Compras',
   'Punições',
-  'Pedidos',
-  'Pagamentos',
-  'Inventário',
-  'Veículos',
-  'Economia',
-  'Propriedades',
-  'Timeline',
-  'Discord',
-  'Auditoria',
+  'Logs',
+  'Crypto',
+  'Benefícios',
+  'Allowlist',
 ];
 export async function DetailPage({
   kind,
@@ -33,6 +34,7 @@ export async function DetailPage({
   page = 1,
   from,
   to,
+  types = [],
 }: {
   kind: 'players' | 'orders';
   id: string;
@@ -40,6 +42,7 @@ export async function DetailPage({
   page?: number;
   from?: string;
   to?: string;
+  types?: string[];
 }) {
   if (!uuid.safeParse(id).success) notFound();
   const path = `/admin/${kind}/${id}`;
@@ -61,7 +64,6 @@ export async function DetailPage({
   const active = typeof tab === 'string' && tabs.includes(tab) ? tab : tabs[0];
   const orderStage =
     kind === 'orders' && ['Pagamento', 'Entrega', 'Benefício / Entitlement', 'Notificação Discord'].includes(active);
-  const futureFiveM = ['Personagens', 'Inventário', 'Veículos', 'Economia', 'Propriedades'].includes(active);
   return (
     <>
       <div className="admin-title">
@@ -69,7 +71,8 @@ export async function DetailPage({
           ← {kind === 'players' ? 'JOGADORES' : 'PEDIDOS'}
         </Link>
         <h1>{kind === 'players' ? 'Perfil do jogador' : 'Detalhes do pedido'}</h1>
-        <p className="admin-id">ID consultado: {id}</p>
+        {/* UUID interno não é o identificador do Staff: a ficha mostra cityId/nome/Discord. */}
+        {kind === 'orders' && <p className="admin-id">ID consultado: {id}</p>}
       </div>
       <nav className="admin-tabs" aria-label="Seções do registro">
         {tabs.map((label) => (
@@ -85,6 +88,16 @@ export async function DetailPage({
       <div className="admin-panel">
         {orderStage ? (
           <OrderStages admin stage={active} />
+        ) : kind === 'players' && active === 'Visão geral' ? (
+          <PlayerOverview discordId={admin.discordId} playerId={id} />
+        ) : kind === 'players' && active === 'Personagens' ? (
+          <PlayerCharacters discordId={admin.discordId} playerId={id} />
+        ) : kind === 'players' && active === 'Compras' ? (
+          <PlayerPurchases discordId={admin.discordId} playerId={id} page={page} />
+        ) : kind === 'players' && active === 'Punições' ? (
+          <PlayerPunishments discordId={admin.discordId} playerId={id} />
+        ) : kind === 'players' && active === 'Logs' ? (
+          <PlayerTimeline discordId={admin.discordId} playerId={id} page={page} types={types} from={from} to={to} />
         ) : kind === 'players' && active === 'Benefícios' ? (
           <PlayerEntitlements discordId={admin.discordId} playerId={id} page={page} />
         ) : kind === 'players' && active === 'Atividade' ? (
@@ -93,7 +106,7 @@ export async function DetailPage({
           <PlayerCrypto discordId={admin.discordId} playerId={id} page={page} />
         ) : (
           <GapState
-            title={futureFiveM ? 'Disponível após integração FiveM' : 'Dados ainda não integrados'}
+            title="Dados ainda não integrados"
             description="O identificador informado ainda não pôde ser consultado. Nenhum registro é presumido como existente."
           />
         )}

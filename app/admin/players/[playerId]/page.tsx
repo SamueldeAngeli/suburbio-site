@@ -4,7 +4,13 @@ export default async function PlayerDetail({
   searchParams,
 }: {
   params: Promise<{ playerId: string }>;
-  searchParams: Promise<{ tab?: string | string[]; page?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    page?: string;
+    from?: string;
+    to?: string;
+    types?: string | string[];
+  }>;
 }) {
   const { playerId } = await params;
   const query = await searchParams;
@@ -16,6 +22,7 @@ export default async function PlayerDetail({
       page={Number(query.page ?? 1)}
       from={typeof query.from === 'string' ? query.from : undefined}
       to={typeof query.to === 'string' ? query.to : undefined}
+      types={([] as string[]).concat(query.types ?? []).slice(0, 10)}
     />
   );
 }

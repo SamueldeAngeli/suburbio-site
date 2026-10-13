@@ -4,6 +4,7 @@ import { pageAccess } from '@/lib/permissions/guards';
 import { SuburbioApiClient } from '@/lib/api/client';
 import { safeError } from '@/lib/api/errors';
 import { AccessUnavailable, ErrorState } from './states';
+import { discordLabel } from './discord-identity';
 
 const filters = z.object({
   page: z.coerce.number().int().min(1).max(10000).default(1),
@@ -47,7 +48,7 @@ export async function PlayerList({
             name="q"
             maxLength={100}
             defaultValue={query.q}
-            placeholder="ID da cidade, nome, Discord ou citizenId"
+            placeholder="ID da cidade, nome, Discord, citizenId, license: ou steam:"
           />
         </label>
         <button className="button small">Buscar</button>
@@ -88,7 +89,9 @@ export async function PlayerList({
                     )}
                   </td>
                   <td>
-                    {p.discordId ? `${p.discordId}${p.discordVerified ? '' : ' (não verificado)'}` : 'Não vinculado'}
+                    {p.discordId
+                      ? `${discordLabel(p.discordId, p.discordName)}${p.discordVerified ? '' : ' (não verificado)'}`
+                      : 'Não vinculado'}
                   </td>
                   <td>{p.citizenId}</td>
                   <td>{role(p.job)}</td>

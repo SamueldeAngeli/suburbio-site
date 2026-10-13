@@ -12,6 +12,14 @@ import { balanceSchema, charactersSchema } from './citizen-contracts';
 import { playerListSchema } from './player-contracts';
 import { adminCryptoSchema } from './crypto-ledger-contracts';
 import { activitySchema } from './activity-contracts';
+import {
+  TIMELINE_TYPES,
+  charactersAdminSchema,
+  overviewSchema,
+  punishmentsSchema,
+  purchasesSchema,
+  timelineSchema,
+} from './player-profile-contracts';
 import 'server-only';
 import type { Membership } from '@/lib/auth/discord-membership';
 import { randomUUID } from 'node:crypto';
@@ -561,6 +569,50 @@ export class SuburbioApiClient {
     const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25', q });
     if (status) query.set('status', status);
     return this.request(`/internal/site/admins?${query}`, adminListSchema);
+  }
+  private playerPath(actorDiscordId: string, playerId: string) {
+    if (!discordIdSchema.safeParse(actorDiscordId).success || !uuid.safeParse(playerId).success)
+      throw new SiteError('INVALID_INPUT', 400);
+    return `/internal/site/players/${playerId}`;
+  }
+  playerOverview(actorDiscordId: string, playerId: string) {
+    const base = this.playerPath(actorDiscordId, playerId);
+    return this.request(`${base}/overview?${new URLSearchParams({ actorDiscordId })}`, overviewSchema);
+  }
+  playerCharacters(actorDiscordId: string, playerId: string) {
+    const base = this.playerPath(actorDiscordId, playerId);
+    return this.request(`${base}/characters?${new URLSearchParams({ actorDiscordId })}`, charactersAdminSchema);
+  }
+  playerPunishments(actorDiscordId: string, playerId: string) {
+    const base = this.playerPath(actorDiscordId, playerId);
+    return this.request(`${base}/punishments?${new URLSearchParams({ actorDiscordId })}`, punishmentsSchema);
+  }
+  playerPurchases(actorDiscordId: string, playerId: string, page = 1) {
+    const base = this.playerPath(actorDiscordId, playerId);
+    if (!Number.isInteger(page) || page < 1 || page > 100000) throw new SiteError('INVALID_INPUT', 400);
+    const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25' });
+    return this.request(`${base}/purchases?${query}`, purchasesSchema);
+  }
+  playerTimeline(
+    actorDiscordId: string,
+    playerId: string,
+    filter: { types: string[]; from?: string; to?: string; page: number },
+  ) {
+    const base = this.playerPath(actorDiscordId, playerId);
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    if (
+      filter.types.some((t) => !(TIMELINE_TYPES as readonly string[]).includes(t)) ||
+      (filter.from && !day.test(filter.from)) ||
+      (filter.to && !day.test(filter.to)) ||
+      !Number.isInteger(filter.page) ||
+      filter.page < 1
+    )
+      throw new SiteError('INVALID_INPUT', 400);
+    const query = new URLSearchParams({ actorDiscordId, page: String(filter.page), pageSize: '50' });
+    if (filter.types.length) query.set('types', filter.types.join(','));
+    if (filter.from) query.set('from', filter.from);
+    if (filter.to) query.set('to', filter.to);
+    return this.request(`${base}/timeline?${query}`, timelineSchema);
   }
   playerActivity(actorDiscordId: string, playerId: string, range: { from: string; to: string } | null, page = 1) {
     const day = /^\d{4}-\d{2}-\d{2}$/;
