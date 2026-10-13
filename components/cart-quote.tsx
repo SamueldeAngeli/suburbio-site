@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { cartQuoteSchema } from '@/lib/api/cart-contracts';
+import { notifyUnauthorized } from '@/components/site/citizen-provider';
 type Quote = z.infer<typeof cartQuoteSchema>;
 export function CartQuote({ cart, couponCode }: { cart: Record<string, number>; couponCode: string }) {
   const [gift, setGift] = useState<GiftSelection | null>(null);
@@ -34,6 +35,7 @@ export function CartQuote({ cart, couponCode }: { cart: Record<string, number>; 
         const body = await r.json();
         if (abort.signal.aborted) return;
         if (!r.ok) {
+          if (r.status === 401) notifyUnauthorized();
           setState({
             error:
               r.status === 401

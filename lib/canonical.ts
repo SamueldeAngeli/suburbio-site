@@ -28,3 +28,12 @@ export function wwwRedirects(authUrl: string | undefined) {
     },
   ];
 }
+
+// HSTS só quando a origem canônica é HTTPS (produção). Sem includeSubDomains/preload e com
+// max-age curto (1 dia) até confirmar que tudo está 100% HTTPS: fácil de reverter.
+export const HSTS_VALUE = 'max-age=86400';
+export function hstsHeaders(authUrl: string | undefined) {
+  return canonicalOrigin(authUrl)?.protocol === 'https:'
+    ? [{ key: 'Strict-Transport-Security', value: HSTS_VALUE }]
+    : [];
+}

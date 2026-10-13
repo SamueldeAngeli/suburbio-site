@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalOrigin, wwwRedirects } from '@/lib/canonical';
+import { HSTS_VALUE, canonicalOrigin, hstsHeaders, wwwRedirects } from '@/lib/canonical';
 import config from '../next.config';
 
 describe('origem canônica (AUTH_URL)', () => {
@@ -40,5 +40,16 @@ describe('www → raiz', () => {
       if (previous === undefined) delete process.env.AUTH_URL;
       else process.env.AUTH_URL = previous;
     }
+  });
+});
+
+describe('HSTS', () => {
+  it('só em HTTPS, sem includeSubDomains nem preload', () => {
+    expect(hstsHeaders('https://suburbioroleplay.com')).toEqual([
+      { key: 'Strict-Transport-Security', value: 'max-age=86400' },
+    ]);
+    expect(HSTS_VALUE).not.toMatch(/includeSubDomains|preload/i);
+    expect(hstsHeaders('http://localhost:3002')).toEqual([]);
+    expect(hstsHeaders(undefined)).toEqual([]);
   });
 });
