@@ -10,6 +10,7 @@ import {
 } from './affiliate-contracts';
 import { balanceSchema, charactersSchema } from './citizen-contracts';
 import { playerListSchema } from './player-contracts';
+import { adminCryptoSchema } from './crypto-ledger-contracts';
 import 'server-only';
 import type { Membership } from '@/lib/auth/discord-membership';
 import { randomUUID } from 'node:crypto';
@@ -559,6 +560,18 @@ export class SuburbioApiClient {
     const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25', q });
     if (status) query.set('status', status);
     return this.request(`/internal/site/admins?${query}`, adminListSchema);
+  }
+  playerCrypto(actorDiscordId: string, playerId: string, page = 1) {
+    if (
+      !discordIdSchema.safeParse(actorDiscordId).success ||
+      !uuid.safeParse(playerId).success ||
+      !Number.isInteger(page) ||
+      page < 1 ||
+      page > 100000
+    )
+      throw new SiteError('INVALID_INPUT', 400);
+    const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25' });
+    return this.request(`/internal/site/players/${playerId}/crypto?${query}`, adminCryptoSchema);
   }
   players(actorDiscordId: string, page = 1, q = '') {
     if (

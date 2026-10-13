@@ -80,7 +80,13 @@ export async function PlayerList({
                   <td>
                     <strong>{p.cityId}</strong>
                   </td>
-                  <td>{p.name ?? p.accountName}</td>
+                  <td>
+                    {p.playerId ? (
+                      <Link href={`/admin/players/${p.playerId}`}>{p.name ?? p.accountName}</Link>
+                    ) : (
+                      (p.name ?? p.accountName)
+                    )}
+                  </td>
                   <td>
                     {p.discordId ? `${p.discordId}${p.discordVerified ? '' : ' (não verificado)'}` : 'Não vinculado'}
                   </td>

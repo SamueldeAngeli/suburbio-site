@@ -5,9 +5,11 @@ import { uuid } from '@/lib/api/contracts';
 import { pageAccess } from '@/lib/permissions/guards';
 import { AccessUnavailable, GapState } from './states';
 import { PlayerEntitlements } from './player-entitlements';
+import { PlayerCrypto } from './player-crypto';
 export const playerTabs = [
   'Visão geral',
   'Benefícios',
+  'Crypto',
   'Personagens',
   'Identidade',
   'Allowlist',
@@ -79,6 +81,8 @@ export async function DetailPage({
           <OrderStages admin stage={active} />
         ) : kind === 'players' && active === 'Benefícios' ? (
           <PlayerEntitlements discordId={admin.discordId} playerId={id} page={page} />
+        ) : kind === 'players' && active === 'Crypto' ? (
+          <PlayerCrypto discordId={admin.discordId} playerId={id} page={page} />
         ) : (
           <GapState
             title={futureFiveM ? 'Disponível após integração FiveM' : 'Dados ainda não integrados'}
