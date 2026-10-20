@@ -44,10 +44,11 @@ O retorno do navegador nunca confirma pagamento. A autoridade é o webhook assin
 ## Transmissão de tela
 
 - Token LiveKit só no servidor, após sessão válida; identity = Discord ID da sessão, nome da sessão, TTL 60s, restrito à sala. O corpo da requisição é estrito: campos como `identity`, `role`, `name` ou `canPublish` são recusados (400).
-- Grants mínimos por papel (`canPublishSources`): tela só para anfitrião/apresentador; participante só microfone; silenciado nada; sem `roomAdmin`/`canPublishData`. Publicar tela alterando o frontend é recusado pela própria LiveKit.
+- Grants mínimos por papel (`canPublishSources`): tela, áudio da tela e microfone só para quem transmite (e apresentadores); espectador nenhuma fonte (só assina); silenciado nada; sem `roomAdmin`/`canPublishData`. Publicar tela alterando o frontend é recusado pela própria LiveKit.
 - Toda ação de moderação valida o anfitrião no servidor. Remover usa `revokeTokenTs` (token antigo deixa de valer) e bloqueia novos tokens para a identity na sala. Revogar apresentação silencia a tela já publicada no servidor.
 - Sem enumeração: sala inexistente, expirada, encerrada ou com usuário bloqueado respondem igual (`ROOM_NOT_FOUND`); código de 40 bits sob rate limit.
-- Limites: 30 ações/min por usuário, 5 criações/10 min, 20 entradas (tokens)/min, 2 salas por anfitrião, 100 salas no total, corpo de 1 KB; origem + cabeçalho de intenção (CSRF).
+- Transmissão privada: chave de convite aleatória (128 bits) comparada em tempo constante antes de emitir o token; recusa registrada (`screen.room.denied`). Moderação de terceiros só com `PUNISHMENTS_WRITE` confirmada na API; encerramento por moderador registra responsável e motivo (`screen.broadcast.moderated`).
+- Limites: 30 ações/min por usuário, 5 criações/10 min, 20 entradas (tokens)/min, 30 leituras da central/min, 1 transmissão aberta por pessoa, 100 no total, corpo de 2 KB; origem + cabeçalho de intenção (CSRF).
 - Logs de sala registram só operação e duração; nunca token, chave, secret ou URL interna. O bundle cliente é verificado por `npm run verify:client`.
 
 ## Rate limit

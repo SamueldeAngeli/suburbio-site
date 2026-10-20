@@ -26,7 +26,8 @@ Nenhum segredo usa `NEXT_PUBLIC_`. `npm run verify:client` falha se nome ou valo
 | `LIVEKIT_PUBLIC_URL` | LiveKit | Endereço entregue ao navegador. Produção: `wss://` em host público |
 | `LIVEKIT_API_KEY` | LiveKit | Chave cadastrada no LiveKit |
 | `LIVEKIT_API_SECRET` | LiveKit | ≥ 32 em produção |
-| `LIVEKIT_ROOM_MAX_PARTICIPANTS` | — | 2–50; padrão 10. Teto de participantes por sala (anfitrião incluso); o anfitrião escolhe de 2 até esse valor |
+| `LIVEKIT_ROOM_MAX_PARTICIPANTS` | — | 2–50; padrão 10. Teto de participantes por transmissão (transmissor incluso) |
+| `LIVEKIT_HOST_GRACE_SECONDS` | — | 30–1800; padrão 120. Quanto tempo o transmissor pode ficar fora (queda, reload) antes de a transmissão ser encerrada para todos |
 | `REDIS_URL` | transmissão | `redis://` ou `rediss://`. **Obrigatório com `LIVEKIT_ENABLED`** (salas só no Redis). Sem transmissão é opcional: ausente = rate limit por instância |
 | `REDIS_KEY_PREFIX` | — | Padrão `suburbio:site:`; nunca usar o prefixo da API |
 | `PORT` | — | Definida pelo PM2 (`ecosystem.config.cjs`: 3002 em 127.0.0.1) |
