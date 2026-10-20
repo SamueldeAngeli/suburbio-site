@@ -85,7 +85,7 @@ export async function DetailPage({
           </Link>
         ))}
       </nav>
-      <div className="admin-panel">
+      <div className="admin-panel admin-panel-body">
         {orderStage ? (
           <OrderStages admin stage={active} />
         ) : kind === 'players' && active === 'Visão geral' ? (

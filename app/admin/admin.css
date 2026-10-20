@@ -154,6 +154,23 @@
 .admin-title {
   margin-bottom: 31px;
 }
+/* Subtítulos das telas do admin. Sem isto herdam o h2/h3 da home (globals.css, 42–64px). */
+.admin-content h2 {
+  font: 700 26px/1.15 var(--display);
+  letter-spacing: 0;
+  color: #f5f7fa;
+  margin: 34px 0 14px;
+}
+.admin-content h3 {
+  font: 700 19px/1.2 var(--display);
+  letter-spacing: 0;
+  color: #f5f7fa;
+  margin: 22px 0 10px;
+}
+.admin-content h2:first-child,
+.admin-content h3:first-child {
+  margin-top: 0;
+}
 .admin-title h1 {
   font: 700 clamp(36px, 4vw, 56px)/1.05 var(--display);
   letter-spacing: 0;
@@ -207,6 +224,20 @@
   background: var(--admin-card);
   border-radius: 7px;
   overflow: hidden;
+}
+/* Conteúdo das abas de detalhe (perfil do jogador, pedido…): o painel de lista não tem padding. */
+.admin-panel-body {
+  padding: 25px;
+}
+.admin-panel-body > div.admin-record,
+.admin-panel-body > dl.admin-record {
+  padding: 0;
+}
+.admin-panel-body > div.admin-record > p {
+  margin: 0;
+}
+.admin-panel-body > :last-child {
+  margin-bottom: 0;
 }
 .admin-panel-title {
   display: flex;
@@ -454,7 +485,8 @@
 .admin-record {
   padding: 25px;
 }
-.admin-record dl {
+.admin-record dl,
+dl.admin-record {
   margin: 0 0 25px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -725,13 +757,17 @@
   .admin-pagination > span {
     width: 100%;
   }
-  .admin-record dl {
+  .admin-record dl,
+  dl.admin-record {
     grid-template-columns: 1fr;
   }
 }
 @media (max-width: 480px) {
   .admin-content {
     padding: 29px 18px;
+  }
+  .admin-panel-body {
+    padding: 18px;
   }
   .admin-header {
     padding: 15px;
