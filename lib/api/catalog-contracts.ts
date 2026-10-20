@@ -21,12 +21,17 @@ export const delivery = z.discriminatedUnion('deliveryType', [
   z.object({ deliveryType: z.literal('CHARACTER_SLOT'), deliveryPayload: z.object({ amount: z.literal(1) }).strict() }),
   z.object({ deliveryType: z.literal('CUSTOM'), deliveryPayload: z.object({ adapter: resourceName }).strict() }),
 ]);
+// Zod 4 roda o refine mesmo quando z.url() já falhou: new URL() não pode lançar aqui.
+const isHttps = (v: string) => {
+  try {
+    return new URL(v).protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
 const productBase = z
   .object({
-    gallery: z
-      .array(z.url().refine((v) => new URL(v).protocol === 'https:'))
-      .max(12)
-      .optional(),
+    gallery: z.array(z.url().refine(isHttps)).max(12).optional(),
     featured: z.boolean().optional(),
     location: z.string().max(300).optional(),
     features: z.array(z.string().max(150)).max(20).optional(),
@@ -40,7 +45,7 @@ const productBase = z
     slug,
     description: z.string().trim().max(3000),
     categoryId: z.uuid(),
-    imageUrl: z.union([z.literal(''), z.url().refine((v) => new URL(v).protocol === 'https:')]),
+    imageUrl: z.union([z.literal(''), z.url().refine(isHttps)]),
     status,
     displayOrder: z.number().int().min(0).max(100000),
     storefronts: z

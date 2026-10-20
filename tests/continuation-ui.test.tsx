@@ -155,3 +155,11 @@ it('salas sem contrato não geram host, código ou participantes falsos', () => 
   expect(html).toContain('Participantes (0)');
   expect(html).not.toContain('Controles do host');
 });
+it('URL de imagem inválida invalida o campo sem lançar exceção', () => {
+  for (const patch of [
+    { gallery: ['imagem sem link'] },
+    { imageUrl: 'nao-e-url' },
+    { gallery: ['http://exemplo.com/a.png'] },
+  ])
+    expect(productInput.safeParse({ ...product, salesChannels: ['WEB'], ...patch }).success).toBe(false);
+});
