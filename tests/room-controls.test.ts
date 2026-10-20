@@ -37,24 +37,36 @@ vi.mock('livekit-server-sdk', () => ({
     }
   },
 }));
-import { roomAction, RedisRoomStore, liveKitReachable, type RoomStore } from '@/lib/screen/rooms';
+import {
+  roomAction,
+  RedisRoomStore,
+  liveKitReachable,
+  listBroadcasts,
+  moderationOverview,
+  type RoomStore,
+} from '@/lib/screen/rooms';
 import { RedisUnavailable, type SiteRedis } from '@/lib/server/redis';
 
 const host = { discordId: '123456789012345678', name: 'Host' },
   viewer = { discordId: '223456789012345678', name: 'Viewer' },
   third = { discordId: '323456789012345678', name: 'Third' };
 const SECRET = 'livekit-secret-value-never-in-client';
+const TITLE = 'Corrida na zona norte';
 const MIC = 2,
   SCREEN = 3,
   SCREEN_AUDIO = 4;
 // Participantes conectados na LiveKit (fonte da presença real).
 let connected: { identity: string; tracks: { sid: string; source: number }[] }[];
 let store: RoomStore;
+// Salas existentes na LiveKit (criadas pelo SDK e ainda não encerradas).
+let live: Set<string>;
 
 /** Redis em memória com as mesmas operações usadas pelo store e pelo lock (SET NX + EVAL). */
 function fakeRedis(fail = false): SiteRedis {
   const hash = new Map<string, string>();
   const strings = new Map<string, string>();
+  const lists = new Map<string, string[]>();
+  const list = (key: string) => lists.get(key) ?? (lists.set(key, []), lists.get(key)!);
   const client = {
     hVals: async () => [...hash.values()],
     hGet: async (_: string, code: string) => hash.get(code) ?? null,
@@ -67,11 +79,20 @@ function fakeRedis(fail = false): SiteRedis {
           return chain;
         },
         pExpire: () => chain,
+        lPush: (key: string, value: string) => {
+          ops.push(() => list(key).unshift(value));
+          return chain;
+        },
+        lTrim: (key: string, start: number, stop: number) => {
+          ops.push(() => lists.set(key, list(key).slice(start, stop + 1)));
+          return chain;
+        },
         exec: async () => ops.forEach((op) => op()),
       };
       return chain;
     },
     set: async (key: string, value: string) => (strings.has(key) ? null : (strings.set(key, value), 'OK')),
+    lRange: async (key: string, start: number, stop: number) => list(key).slice(start, stop + 1),
     eval: async (_: string, { keys }: { keys: string[] }) => Number(strings.delete(keys[0])),
   };
   return {
@@ -94,7 +115,9 @@ beforeEach(() => {
   vi.stubEnv('REDIS_URL', 'redis://127.0.0.1:6379');
   connected = [];
   for (const fn of [m.create, m.remove, m.update, m.mute, m.metadata, m.deleted]) fn.mockResolvedValue(undefined);
-  m.list.mockResolvedValue([{ name: 'room' }]);
+  live = new Set();
+  m.create.mockImplementation(async ({ name }: { name: string }) => void live.add(name));
+  m.list.mockImplementation(async (names?: string[]) => (names ?? [...live]).map((name) => ({ name })));
   m.participants.mockImplementation(async () => connected);
   store = new RedisRoomStore(fakeRedis());
 });
@@ -105,7 +128,7 @@ afterEach(() => {
 
 type Joined = { code: string; host: string; role: string; capacity: number; url: string; token: string };
 async function created(capacity?: number) {
-  const room = (await roomAction(host, { action: 'create', capacity }, store)) as unknown as Joined;
+  const room = (await roomAction(host, { action: 'create', capacity, title: TITLE }, store)) as unknown as Joined;
   connected.push({ identity: host.discordId, tracks: [] });
   return room;
 }
@@ -133,11 +156,11 @@ describe('papéis e tokens', () => {
     expect(lastGrant()).not.toHaveProperty('roomAdmin');
     expect(room.role).toBe('host');
   });
-  it('participante só pode publicar microfone e não ganha autoridade de anfitrião', async () => {
+  it('espectador só assiste: nenhuma fonte de publicação e nenhuma autoridade de quem transmite', async () => {
     const room = await created();
     const joined = await join(viewer, room.code);
     expect(joined.role).toBe('participant');
-    expect(lastGrant()).toMatchObject({ canPublish: true, canPublishSources: [MIC] });
+    expect(lastGrant()).toMatchObject({ canPublish: false, canPublishSources: [], canSubscribe: true });
     await expect(roomAction(viewer, { action: 'end', code: room.code }, store)).rejects.toMatchObject({
       code: 'ROOM_HOST_REQUIRED',
     });
@@ -161,7 +184,7 @@ describe('papéis e tokens', () => {
     ];
     await roomAction(host, { action: 'share', code: room.code, target: viewer.discordId, enabled: false }, store);
     expect(m.update).toHaveBeenLastCalledWith(expect.any(String), viewer.discordId, {
-      permission: expect.objectContaining({ canPublishSources: [MIC] }),
+      permission: expect.objectContaining({ canPublish: false, canPublishSources: [] }),
     });
     expect(m.mute).toHaveBeenCalledWith(expect.any(String), viewer.discordId, 'TR_screen', true);
     expect(m.mute).not.toHaveBeenCalledWith(expect.any(String), viewer.discordId, 'TR_mic', true);
@@ -244,7 +267,10 @@ describe('ciclo da sala', () => {
     const room = await created(4);
     const saved = (await store.get(room.code))!;
     expect(saved).toMatchObject({
-      title: 'Sala de Host',
+      title: TITLE,
+      visibility: 'public',
+      inviteKey: null,
+      startedAt: null,
       host: host.discordId,
       state: 'open',
       capacity: 4,
@@ -254,11 +280,26 @@ describe('ciclo da sala', () => {
     });
     expect(saved.createdAt).toBeLessThanOrEqual(Date.now());
     expect(m.create).toHaveBeenCalledWith(expect.objectContaining({ maxParticipants: 4 }));
-    await created();
-    await expect(roomAction(host, { action: 'create' }, store)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
+    await expect(roomAction(host, { action: 'create', title: TITLE }, store)).rejects.toMatchObject({
+      code: 'ROOM_ACTIVE_EXISTS',
+    });
+  });
+  it('salas já encerradas pela LiveKit saem do Redis e não contam no limite por anfitrião', async () => {
+    const old = [await created()];
+    live.clear();
+    const fresh = await created();
+    for (const room of old) expect(await store.get(room.code)).toBeUndefined();
+    expect(await store.get(fresh.code)).toBeDefined();
+    expect(m.list).toHaveBeenCalledWith();
+  });
+  it('falha ao listar salas não remove nada nem bloqueia a criação', async () => {
+    const room = await created();
+    m.list.mockRejectedValueOnce(new Error('down'));
+    await roomAction(viewer, { action: 'create', title: TITLE }, store);
+    expect(await store.get(room.code)).toBeDefined();
   });
   it.each([1, 11])('capacidade %i fora do limite configurado é recusada', async (capacity) => {
-    await expect(roomAction(host, { action: 'create', capacity }, store)).rejects.toMatchObject({
+    await expect(roomAction(host, { action: 'create', capacity, title: TITLE }, store)).rejects.toMatchObject({
       code: 'INVALID_INPUT',
     });
   });
@@ -330,30 +371,40 @@ describe('URLs, secrets e indisponibilidade', () => {
       expect(text).not.toContain('127.0.0.1');
       expect(Object.keys(payload).sort()).toEqual([
         'capacity',
+        'category',
         'code',
+        'description',
         'host',
+        'hostAvatar',
+        'hostName',
         'locked',
         'role',
+        'startedAt',
         'title',
         'token',
         'url',
+        'visibility',
       ]);
     }
   });
   it('transmissão desligada falha fechada antes de tocar no SDK', async () => {
     vi.stubEnv('LIVEKIT_ENABLED', 'false');
-    await expect(roomAction(host, { action: 'create' }, store)).rejects.toMatchObject({ code: 'ROOM_UNAVAILABLE' });
+    await expect(roomAction(host, { action: 'create', title: TITLE }, store)).rejects.toMatchObject({
+      code: 'ROOM_UNAVAILABLE',
+    });
     expect(m.create).not.toHaveBeenCalled();
     expect(await liveKitReachable()).toBe('down');
   });
   it('configuração LiveKit ausente vira ROOM_UNAVAILABLE sem expor detalhes', async () => {
     vi.stubEnv('LIVEKIT_API_SECRET', '');
-    await expect(roomAction(host, { action: 'create' }, store)).rejects.toMatchObject({ code: 'ROOM_UNAVAILABLE' });
+    await expect(roomAction(host, { action: 'create', title: TITLE }, store)).rejects.toMatchObject({
+      code: 'ROOM_UNAVAILABLE',
+    });
     expect(m.create).not.toHaveBeenCalled();
   });
   it('LiveKit fora vira ROOM_UNAVAILABLE sem vazar o erro do SDK', async () => {
     m.create.mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:7880'));
-    await expect(roomAction(host, { action: 'create' }, store)).rejects.toMatchObject({
+    await expect(roomAction(host, { action: 'create', title: TITLE }, store)).rejects.toMatchObject({
       code: 'ROOM_UNAVAILABLE',
       message: expect.not.stringContaining('127.0.0.1'),
     });
@@ -368,20 +419,205 @@ describe('URLs, secrets e indisponibilidade', () => {
 describe('Redis', () => {
   it('salas persistem entre instâncias do store (restart / segunda instância)', async () => {
     const redis = fakeRedis();
-    const room = (await roomAction(host, { action: 'create' }, new RedisRoomStore(redis))) as unknown as Joined;
+    const room = (await roomAction(
+      host,
+      { action: 'create', title: TITLE },
+      new RedisRoomStore(redis),
+    )) as unknown as Joined;
     await expect(
       roomAction(viewer, { action: 'join', code: room.code }, new RedisRoomStore(redis)),
     ).resolves.toMatchObject({ code: room.code });
   });
   it('Redis fora falha fechado e não cria sala na LiveKit', async () => {
-    await expect(roomAction(host, { action: 'create' }, new RedisRoomStore(fakeRedis(true)))).rejects.toMatchObject({
+    await expect(
+      roomAction(host, { action: 'create', title: TITLE }, new RedisRoomStore(fakeRedis(true))),
+    ).rejects.toMatchObject({
       code: 'ROOM_UNAVAILABLE',
     });
     expect(m.create).not.toHaveBeenCalled();
   });
   it('sem Redis configurado não há fallback em memória', async () => {
     vi.stubEnv('REDIS_URL', '');
-    await expect(roomAction(host, { action: 'create' })).rejects.toMatchObject({ code: 'ROOM_UNAVAILABLE' });
+    await expect(roomAction(host, { action: 'create', title: TITLE })).rejects.toMatchObject({
+      code: 'ROOM_UNAVAILABLE',
+    });
     expect(m.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('transmissão', () => {
+  const screen = (identity: string) => {
+    const p = connected.find((c) => c.identity === identity)!;
+    p.tracks = [{ sid: 'TR_' + identity, source: SCREEN }];
+  };
+  const goLive = async (code: string) => {
+    screen(host.discordId);
+    return roomAction(host, { action: 'live', code }, store);
+  };
+  // Simula a LiveKit (contagem de participantes) a partir dos conectados.
+  const syncRooms = () =>
+    m.list.mockImplementation(async (names?: string[]) =>
+      (names ?? [...live]).map((name) => ({ name, numParticipants: connected.length })),
+    );
+
+  it('uma transmissão aberta por pessoa; depois de encerrar pode iniciar outra', async () => {
+    const room = await created();
+    await expect(roomAction(host, { action: 'create', title: TITLE }, store)).rejects.toMatchObject({
+      code: 'ROOM_ACTIVE_EXISTS',
+    });
+    await roomAction(host, { action: 'end', code: room.code }, store);
+    connected = [];
+    await expect(created()).resolves.toMatchObject({ role: 'host' });
+  });
+  it('título é obrigatório e limitado', async () => {
+    for (const title of [undefined, '  a ', 'x'.repeat(81)])
+      await expect(roomAction(host, { action: 'create', title }, store)).rejects.toMatchObject({
+        code: 'INVALID_INPUT',
+      });
+    expect(m.create).not.toHaveBeenCalled();
+  });
+  it('privada: saber o código não basta; convite errado é recusado; convite certo entra; quem já entrou volta', async () => {
+    const room = (await roomAction(
+      host,
+      { action: 'create', title: TITLE, visibility: 'private' },
+      store,
+    )) as unknown as Joined & { invite: string };
+    connected.push({ identity: host.discordId, tracks: [] });
+    expect(room.invite).toMatch(/^[a-f0-9]{32}$/);
+    await expect(roomAction(viewer, { action: 'join', code: room.code }, store)).rejects.toMatchObject({
+      code: 'ROOM_INVITE_REQUIRED',
+    });
+    await expect(
+      roomAction(viewer, { action: 'join', code: room.code, invite: 'f'.repeat(32) }, store),
+    ).rejects.toMatchObject({ code: 'ROOM_INVITE_REQUIRED' });
+    expect(m.grant).toHaveBeenCalledTimes(1);
+    const joined = await roomAction(viewer, { action: 'join', code: room.code, invite: room.invite }, store);
+    expect(joined).not.toHaveProperty('invite');
+    expect(lastGrant()).toMatchObject({ canPublish: false });
+    // Reconexão de quem já foi admitido não precisa do convite de novo.
+    await expect(roomAction(viewer, { action: 'join', code: room.code }, store)).resolves.toBeTruthy();
+  });
+  it('AO VIVO só depois de a LiveKit confirmar a tela publicada pelo transmissor', async () => {
+    const room = await created();
+    await expect(roomAction(host, { action: 'live', code: room.code }, store)).rejects.toMatchObject({
+      code: 'ROOM_NOT_LIVE',
+    });
+    await join(viewer, room.code);
+    await expect(roomAction(viewer, { action: 'live', code: room.code }, store)).rejects.toMatchObject({
+      code: 'ROOM_HOST_REQUIRED',
+    });
+    const view = (await goLive(room.code)) as { startedAt: number };
+    expect(view.startedAt).toBeGreaterThan(0);
+    expect((await store.get(room.code))!.startedAt).toBe(view.startedAt);
+    expect(m.metadata).toHaveBeenLastCalledWith(expect.any(String), expect.stringContaining('"startedAt":'));
+  });
+  it('lista só transmissões reais: criada sem tela não aparece; ao vivo mostra espectadores sem contar o transmissor', async () => {
+    syncRooms();
+    const room = await created();
+    expect((await listBroadcasts(viewer, store)).live).toEqual([]);
+    expect((await listBroadcasts(host, store)).mine).toMatchObject({ code: room.code, status: 'waiting' });
+    await join(viewer, room.code);
+    await join(third, room.code);
+    await goLive(room.code);
+    const list = await listBroadcasts(viewer, store);
+    expect(list.live).toEqual([
+      expect.objectContaining({ code: room.code, title: TITLE, status: 'live', viewers: 2, hostName: 'Host' }),
+    ]);
+    // Compartilhamento interrompido: sala continua aberta, como pausada.
+    connected[0]!.tracks = [];
+    expect((await listBroadcasts(viewer, store)).live[0]).toMatchObject({ status: 'paused' });
+  });
+  it('privada não aparece para os outros, só para quem transmite (com o convite)', async () => {
+    syncRooms();
+    const room = await roomAction(host, { action: 'create', title: TITLE, visibility: 'private' }, store);
+    connected.push({ identity: host.discordId, tracks: [] });
+    await goLive((room as { code: string }).code);
+    expect((await listBroadcasts(viewer, store)).live).toEqual([]);
+    expect((await listBroadcasts(host, store)).mine).toMatchObject({
+      visibility: 'private',
+      invite: expect.any(String),
+    });
+  });
+  it('espectador sair não encerra a transmissão', async () => {
+    const room = await created();
+    await join(viewer, room.code);
+    await roomAction(viewer, { action: 'leave', code: room.code }, store);
+    expect(m.deleted).not.toHaveBeenCalled();
+    expect(await store.get(room.code)).toBeDefined();
+  });
+  it('transmissor ausente: tolera a queda e encerra só depois da tolerância, guardando no histórico', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.stubEnv('LIVEKIT_HOST_GRACE_SECONDS', '60');
+    syncRooms();
+    const room = await created();
+    await join(viewer, room.code);
+    await goLive(room.code);
+    vi.spyOn(store, 'sweepDue').mockResolvedValue(true);
+    connected = connected.filter((c) => c.identity !== host.discordId);
+    await listBroadcasts(viewer, store);
+    expect(m.deleted).not.toHaveBeenCalled();
+    expect((await store.get(room.code))!.hostAwaySince).not.toBeNull();
+    // Voltou dentro da tolerância: nada é encerrado.
+    connected.push({ identity: host.discordId, tracks: [{ sid: 'TR_back', source: SCREEN }] });
+    vi.setSystemTime(Date.now() + 30_000);
+    await listBroadcasts(viewer, store);
+    expect((await store.get(room.code))!.hostAwaySince).toBeNull();
+    // Caiu de novo e não voltou: encerra para todos e vai para o histórico.
+    connected = connected.filter((c) => c.identity !== host.discordId);
+    await listBroadcasts(viewer, store);
+    vi.setSystemTime(Date.now() + 61_000);
+    await listBroadcasts(viewer, store);
+    expect(m.deleted).toHaveBeenCalledTimes(1);
+    expect(await store.get(room.code)).toBeUndefined();
+    expect((await listBroadcasts(viewer, store)).ended[0]).toMatchObject({
+      code: room.code,
+      reason: 'host_lost',
+      peakViewers: 1,
+    });
+  });
+  it('sala criada e nunca colocada ao vivo é limpa sem entrar no histórico', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    syncRooms();
+    const room = await created();
+    vi.spyOn(store, 'sweepDue').mockResolvedValue(true);
+    vi.setSystemTime(Date.now() + 11 * 60_000);
+    await listBroadcasts(viewer, store);
+    expect(m.deleted).toHaveBeenCalled();
+    expect(await store.get(room.code)).toBeUndefined();
+    expect(await store.ended()).toEqual([]);
+  });
+  it('encerrar pelo transmissor derruba todos na LiveKit e registra no histórico', async () => {
+    const room = await created();
+    await join(viewer, room.code);
+    await goLive(room.code);
+    await roomAction(host, { action: 'end', code: room.code }, store);
+    expect(m.deleted).toHaveBeenCalledTimes(1);
+    expect(await store.ended()).toEqual([expect.objectContaining({ code: room.code, reason: 'host' })]);
+  });
+  it('moderação: Staff autorizado encerra a de outro; sem permissão é recusado; dono não consulta a API', async () => {
+    const room = await created();
+    await goLive(room.code);
+    const denied = vi.fn(async () => false);
+    await expect(
+      roomAction(third, { action: 'end', code: room.code }, store, { isStaff: denied }),
+    ).rejects.toMatchObject({ code: 'ROOM_HOST_REQUIRED' });
+    expect(m.deleted).not.toHaveBeenCalled();
+    const staff = vi.fn(async () => true);
+    await roomAction(third, { action: 'end', code: room.code, reason: 'Conteúdo impróprio' }, store, {
+      isStaff: staff,
+    });
+    expect(m.deleted).toHaveBeenCalledTimes(1);
+    expect(await store.ended()).toEqual([expect.objectContaining({ reason: 'moderator' })]);
+    connected = [];
+    const own = await created();
+    const ownerCheck = vi.fn(async () => true);
+    await roomAction(host, { action: 'end', code: own.code }, store, { isStaff: ownerCheck });
+    expect(ownerCheck).not.toHaveBeenCalled();
+  });
+  it('visão da moderação inclui privadas e aguardando', async () => {
+    syncRooms();
+    await roomAction(host, { action: 'create', title: TITLE, visibility: 'private' }, store);
+    const overview = await moderationOverview(store);
+    expect(overview.open).toEqual([expect.objectContaining({ visibility: 'private', status: 'waiting' })]);
   });
 });

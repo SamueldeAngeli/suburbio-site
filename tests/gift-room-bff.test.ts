@@ -6,7 +6,12 @@ vi.mock('@/lib/api/client', () => ({
     giftRecipient = m.recipient;
   },
 }));
-vi.mock('@/lib/screen/rooms', () => ({ roomAction: m.room }));
+vi.mock('@/lib/screen/rooms', () => ({
+  roomAction: m.room,
+  listBroadcasts: vi.fn(),
+  CATEGORIES: ['gameplay', 'staff', 'suporte', 'evento', 'apresentacao', 'outro'],
+  SCREEN_MODERATION_CAPABILITY: 'PUNISHMENTS_WRITE',
+}));
 vi.mock('@/lib/server/env', () => ({ serverEnv: () => ({ AUTH_URL: 'http://localhost:3002' }) }));
 import { POST as recipient } from '@/app/api/vip/gifts/recipient/route';
 import { POST as room } from '@/app/api/screen/room/route';
@@ -43,18 +48,25 @@ it('gift lookup requires session and CSRF', async () => {
 });
 it('room token endpoint requires session', async () => {
   m.session.mockResolvedValue(null);
-  expect((await room(request({ action: 'create' }, 'screen.room'))).status).toBe(401);
+  expect((await room(request({ action: 'create', title: 'Teste' }, 'screen.room'))).status).toBe(401);
   expect(m.room).not.toHaveBeenCalled();
 });
 it('room rejects browser identity and host claims', async () => {
-  expect((await room(request({ action: 'create', host: 'attacker' }, 'screen.room'))).status).toBe(400);
+  expect((await room(request({ action: 'create', title: 'Teste', host: 'attacker' }, 'screen.room'))).status).toBe(400);
   expect(m.room).not.toHaveBeenCalled();
 });
 it('room passes session identity and prevents token caching', async () => {
-  const r = await room(request({ action: 'create' }, 'screen.room'));
+  const r = await room(request({ action: 'create', title: 'Teste' }, 'screen.room'));
   expect(r.status).toBe(200);
   expect(r.headers.get('cache-control')).toContain('no-store');
-  expect(m.room).toHaveBeenCalledWith({ discordId: '123456789012345678', name: 'Cidadão' }, { action: 'create' });
+  expect(m.room).toHaveBeenCalledWith(
+    { discordId: '123456789012345678', name: 'Cidadão' },
+    { action: 'create', title: 'Teste' },
+    undefined,
+    { isStaff: expect.any(Function) },
+  );
 });
 it('room rejects cross-origin mutation', async () =>
-  expect((await room(request({ action: 'create' }, 'screen.room', 'https://evil.test'))).status).toBe(403));
+  expect((await room(request({ action: 'create', title: 'Teste' }, 'screen.room', 'https://evil.test'))).status).toBe(
+    403,
+  ));

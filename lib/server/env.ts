@@ -36,6 +36,8 @@ const schema = z.object({
   LIVEKIT_API_SECRET: z.string().optional(),
   // Teto de participantes por sala (anfitrião incluso); cada sala escolhe de 2 até este valor.
   LIVEKIT_ROOM_MAX_PARTICIPANTS: z.coerce.number().int().min(2).max(50).default(10),
+  // Tolerância para o transmissor voltar (queda, reload) antes de a transmissão ser encerrada.
+  LIVEKIT_HOST_GRACE_SECONDS: z.coerce.number().int().min(30).max(1800).default(120),
   REDIS_URL: z.string().optional(),
   REDIS_KEY_PREFIX: z
     .string()
