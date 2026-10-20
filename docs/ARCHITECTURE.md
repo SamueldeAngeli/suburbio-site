@@ -103,4 +103,4 @@ Garantias cobertas por testes de integração da API: o retorno do navegador nun
 
 ### Banco
 
-Migrations versionadas `001`–`013` no repositório da API, aplicadas **manualmente** (`npm run db:migrate`); o boot recusa iniciar com migration pendente. Todos os horários são `timestamptz` e a conexão é fixada em `timezone=UTC`. Dinheiro é `bigint` em centavos (`*_minor`), com aritmética em `BigInt` nos afiliados. Há FKs, `UNIQUE` (provider + referência, um débito por pedido) e triggers que tornam imutável o histórico de afiliados.
+Migrations versionadas `001`–`021` no repositório da API, aplicadas **manualmente** (`npm run db:migrate`); o boot recusa iniciar com migration pendente. Todos os horários são `timestamptz` e a conexão é fixada em `timezone=UTC`. Dinheiro é `bigint` em centavos (`*_minor`), com aritmética em `BigInt` nos afiliados. Há FKs, `UNIQUE` (provider + referência, um débito por pedido) e triggers que tornam imutável o histórico de afiliados.

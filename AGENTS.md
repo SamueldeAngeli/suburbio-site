@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Preservar homepage, identidade e Área VIP demo em app/page.tsx/app/globals.css. Não reconstruir frontend público.
 - Browser → Next.js/BFF → HMAC → Subúrbio API. Nunca banco institucional, bot ou FiveM direto para estado central. Redis próprio do site é permitido para estado efêmero local (salas, TTL, rate limit), isolado das chaves institucionais.
-- Contrato oficial: D:/api suburbio/docs/HTTP_CONTRACTS.md e código de rotas v0.3. Lacunas em docs/API_GAPS.md; propostas não são endpoints disponíveis.
+- Contrato oficial: `../api suburbio/docs/HTTP_CONTRACTS.md` e código de rotas da API. Lacunas em docs/API_GAPS.md; propostas não são endpoints disponíveis.
 - Secrets somente em módulos server-only; nunca NEXT_PUBLIC_, logs ou Client Components.
 - Sessão Discord não concede admin. AccountService consulta POST /internal/site/admin/resolve e falha fechado se a API não autorizar. Sem exceção hardcoded para owner e sem bypass dev em produção.
 - Guard em cada página/handler, motivo/confirmação/CSRF/idempotência nas escritas; ator humano vem da sessão.

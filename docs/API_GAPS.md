@@ -1,6 +1,6 @@
 # Lacunas verificadas — Subúrbio API HTTP v0.3
 
-Atualização comercial em 2026-09-27; inventário detalhado em CONTINUATION_REPORT.md. Verificação inicial em 2026-09-26, lendo `D:/api suburbio/docs/HTTP_CONTRACTS.md`, contratos de resposta e registro de rotas. Não há Git nessa pasta. **As rotas abaixo marcadas como proposta não existem na API v0.3 e não são chamadas pelo site.** Fundação de tabelas/services de commerce/admin não equivale a endpoint HTTP disponível.
+Atualização comercial em 2026-09-27; inventário detalhado em CONTINUATION_REPORT.md. Verificação inicial em 2026-09-26, lendo `../api suburbio/docs/HTTP_CONTRACTS.md`, contratos de resposta e registro de rotas. Não há Git nessa pasta. **As rotas abaixo marcadas como proposta não existem na API v0.3 e não são chamadas pelo site.** Fundação de tabelas/services de commerce/admin não equivale a endpoint HTTP disponível.
 
 ## Disponível e implementado no adapter do site
 
@@ -24,7 +24,7 @@ Todos os endpoints `/internal/*` usam HMAC oficial v0.2. Ator humano é sempre d
 
 Mutações exigem Idempotency-Key, confirmação no site, motivo 3–500, capability revalidada na API, transação e ADMIN_AUDIT com ator humano/serviço separados. Devem respeitar API_READ_ONLY e proteger SYSTEM_OWNER. Erros seguem envelope v0.2 com IDs técnicos. Não implementar as propostas como endpoints fake no Next.js.
 
-Capabilities confirmadas: catálogo central em D:/api suburbio/src/modules/admin/capabilities.ts. Os nomes das páginas já seguem esse catálogo. Endpoints abaixo continuam propostas onde indicado.
+Capabilities confirmadas: catálogo central em `../api suburbio/src/modules/admin/capabilities.ts`. Os nomes das páginas já seguem esse catálogo. Endpoints abaixo continuam propostas onde indicado.
 
 ## P0 — desbloqueia todo o painel
 
@@ -228,7 +228,7 @@ Cargos Discord (2026-10-03): implementação aprovada no código da API, migrati
 
 ## Conta e transmissão — atualização 2026-10-04
 
-Resolvidos no código da API: leitura de saldo da carteira autoritativa por conta (/internal/site/me/crypto) e perfil real do QBCore (/internal/site/me/characters, fonte QBCORE: personagens, emprego/cargo, gang, dinheiro/banco, telefone do ry-phone, veículos com placa/modelo/estado, casas/apartamentos e slots configurados), via HMAC/BFF. Dono = Discord verificado → player → license (identidade central); o site nunca envia citizenid e nunca acessa a MariaDB. Formato JSON inesperado = indisponível. Contrato: D:/api suburbio/docs/HTTP_CONTRACTS.md. Fontes confirmadas nos recursos reais (2026-10-10): telefone = ry_phone_user_data dkey 'ry-phone:number' (fonte canônica do ry-phone via IdentityBridge.GetData; identifier = citizenid; ausente/ambíguo = indisponível; os_users e charinfo.phone nunca são usados). Slots = Config.DefaultNumberOfCharacters (5) do qb-multicharacter; PlayersNumberOfCharacters só tem placeholder; não é concessão individual nem compra, e qb_character_slots não é usado. qb-vipfunc não altera slots. Veículos: player_vehicles.state do qb-garages (0 fora, 1 na garagem, 2 apreendido; outro = indisponível).
+Resolvidos no código da API: leitura de saldo da carteira autoritativa por conta (/internal/site/me/crypto) e perfil real do QBCore (/internal/site/me/characters, fonte QBCORE: personagens, emprego/cargo, gang, dinheiro/banco, telefone do ry-phone, veículos com placa/modelo/estado, casas/apartamentos e slots configurados), via HMAC/BFF. Dono = Discord verificado → player → license (identidade central); o site nunca envia citizenid e nunca acessa a MariaDB. Formato JSON inesperado = indisponível. Contrato: `../api suburbio/docs/HTTP_CONTRACTS.md`. Fontes confirmadas nos recursos reais (2026-10-10): telefone = ry_phone_user_data dkey 'ry-phone:number' (fonte canônica do ry-phone via IdentityBridge.GetData; identifier = citizenid; ausente/ambíguo = indisponível; os_users e charinfo.phone nunca são usados). Slots = Config.DefaultNumberOfCharacters (5) do qb-multicharacter; PlayersNumberOfCharacters só tem placeholder; não é concessão individual nem compra, e qb_character_slots não é usado. qb-vipfunc não altera slots. Veículos: player_vehicles.state do qb-garages (0 fora, 1 na garagem, 2 apreendido; outro = indisponível).
 
 WAITING_FOR_API: slots efetivos e sua elegibilidade/compensação; fila VIP; presentes. WAITING_FOR_SITE_ROOMS/SFU: CreateRoom/JoinRoom/RoomToken/LeaveRoom, mídia e participantes; não dependem da API central. Auditoria do arquivo qb-multicharacter.zip encontrou default 5 + overrides por license, insuficientes para declarar estado efetivo implantado. Ver CRYPTO_SCREEN_2026-10-04.md.
 

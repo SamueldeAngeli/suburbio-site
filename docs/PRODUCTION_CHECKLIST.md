@@ -1,15 +1,17 @@
 # Checklist de produção
 
-Fonte única dos números de teste. Execução de 2026-10-05, Windows, Node 24, serviços de teste isolados (PostgreSQL 127.0.0.1:15432, Redis 127.0.0.1:16379, LiveKit de desenvolvimento 127.0.0.1:7880).
+Fonte única dos números de teste. Windows, Node 24, serviços de teste isolados (PostgreSQL 127.0.0.1:15432, Redis 127.0.0.1:16379, LiveKit de desenvolvimento 127.0.0.1:7880). Cada número indica a data da execução; suítes não reexecutadas mantêm a data anterior.
 
 ## Verificação técnica
 
+Execução de **2026-10-19**: typecheck e testes unitários dos três projetos (site com a alteração local de `lib/screen/rooms.ts`); na API e no bot também lint, build e (API) integração completa. Format e as suítes HTTP/navegador do site não foram reexecutados nessa data.
+
 | Projeto | Typecheck | Lint | Format | Testes | Build |
 | --- | --- | --- | --- | --- | --- |
-| Site | ✔ | ✔ | ✔ | unit 336/336 · HTTP 46/46 · navegador 20/20 · afiliados UI 15/15 · WebRTC real 17/17 · `verify:client` ✔ | ✔ |
-| API | ✔ | ✔ | ✔ | unit 100/100 · integração 243/243 | ✔ |
-| Bot | ✔ | ✔ | ✔ | 176/176 | ✔ |
-| Bridge (somente leitura) | — | — | — | 83/83 (diretório temporário; repositório não alterado) | — |
+| Site | ✔ 10-19 | ✔ 10-05 | ✔ 10-05 | unit 468/468 (10-19) · HTTP 46/46 · navegador 20/20 · afiliados UI 15/15 · WebRTC real 17/17 · `verify:client` ✔ (10-05) | ✔ 10-05 |
+| API | ✔ 10-19 | ✔ 10-19 | ✔ 10-05 | unit 116/116 · integração 351/351 (10-19, com a entrega VIP pelo Discord) | ✔ 10-19 |
+| Bot | ✔ 10-19 | ✔ 10-19 | ✔ 10-05 | 254/254 (10-19, com a entrega VIP pelo Discord) | ✔ 10-19 |
+| Bridge (somente leitura) | — | — | — | 83/83 em 10-05 (diretório temporário; repositório não alterado) | — |
 
 ## Pronto no código
 
@@ -21,7 +23,7 @@ Fonte única dos números de teste. Execução de 2026-10-05, Windows, Node 24, 
 - [x] Estado efêmero do site em Redis (`suburbio:site:*`) com fallback definido; Redis não é ponto único de falha do site.
 - [x] Health/ready nos três serviços.
 - [x] Logs JSON com `timestamp`, `service`, `level`, `event`, `correlationId`, `durationMs`; segredos redigidos.
-- [x] Migrations versionadas 001–013, `timestamptz`/UTC, dinheiro em `bigint`; `db:migrate` em produção exige `MIGRATE_CONFIRM`.
+- [x] Migrations versionadas 001–021, `timestamptz`/UTC, dinheiro em `bigint`; `db:migrate` em produção exige `MIGRATE_CONFIRM`.
 - [x] Bot: logs de mensagem sem spam para mensagens não cacheadas; apelido de membro acima do bot não entra em retry infinito.
 - [x] Repositório: `out/`, scripts que escreviam na API e logs temporários removidos; `.gitattributes` com LF; `.local/` ignorado.
 
@@ -29,7 +31,7 @@ Fonte única dos números de teste. Execução de 2026-10-05, Windows, Node 24, 
 
 - [ ] **VPS:** seguir `WINDOWS_SERVER_DEPLOY.md` (PostgreSQL, Memurai/Redis, LiveKit, Caddy, PM2, tarefa de boot); firewall fechado nas portas internas; NTP ativo. O checklist de go-live completo está na seção 20 desse guia.
 - [ ] **Segredos:** gerar novos valores para produção (4 HMAC/allowlist distintos, `AUTH_SECRET`, LiveKit ≥ 32). Não reutilizar chaves de desenvolvimento.
-- [ ] **Migrations:** backup, depois `npm run db:status`, depois `MIGRATE_CONFIRM=suburbio_api npm run db:migrate` (012 afiliados e 013 presentes ainda não aplicadas em banco real).
+- [ ] **Migrations:** backup, depois `npm run db:status`, depois `MIGRATE_CONFIRM=suburbio_api npm run db:migrate` (012 a 021 ainda não aplicadas em banco real).
 - [ ] **OAuth Discord:** cadastrar `https://suburbioroleplay.com/api/auth/callback/discord` no Developer Portal e homologar login real.
 - [ ] **Mercado Pago:** homologar em sandbox (checkout → webhook → entrega → reembolso) com `MERCADO_PAGO_LIVE_MODE=false`; só então ligar o modo live.
 - [ ] **Bot:** produção exige `API_ENABLED=true` (hoje `false` no `.env` local, ou seja, sem sincronização de allowlist/VIP), `TICKET_STORAGE_MODE=local`, `SCHEDULER_STORAGE_MODE=local` explícitos, `HEALTH_PORT=3101` e, depois de validar, `ROLE_AUTOMATION_SAFE_MODE=false`.

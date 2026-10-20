@@ -13,9 +13,9 @@ Em desenvolvimento o site usa a porta 3002 e a API a 3000. Produção: `npm run 
 
 ## Administração e integração
 
-Next.js 16.3.5 preservado, com Auth.js/Discord, BFF HMAC v0.3 e telas administrativas. Consulte [arquitetura](docs/ARCHITECTURE.md), [ambiente](docs/ENVIRONMENT.md), [segurança](docs/SECURITY.md), [deploy](docs/DEPLOYMENT.md), [operação](docs/OPERATIONS.md), [testes](docs/TESTING.md), [checklist de produção](docs/PRODUCTION_CHECKLIST.md), [lacunas da API](docs/API_GAPS.md) e [permissões](docs/ADMIN_PERMISSIONS.md).
+Next.js 16.3.5 preservado, com Auth.js/Discord, BFF HMAC e telas administrativas. Consulte [arquitetura](docs/ARCHITECTURE.md), [ambiente](docs/ENVIRONMENT.md), [segurança](docs/SECURITY.md), [deploy](docs/DEPLOYMENT.md), [operação](docs/OPERATIONS.md), [testes](docs/TESTING.md), [checklist de produção](docs/PRODUCTION_CHECKLIST.md), [lacunas da API](docs/API_GAPS.md) e [permissões](docs/ADMIN_PERMISSIONS.md).
 
-Copie `.env.example` para `.env.local` e configure os grupos de variáveis antes de habilitá-los. O login Discord está implementado, mas não homologado com credenciais reais. A API v0.3 expõe resolução institucional e catálogo. `/admin` exige configuração OAuth/HMAC e autorização efetiva da API. Nunca conceda owner no frontend para contornar isso.
+Copie `.env.example` para `.env.local` e configure os grupos de variáveis antes de habilitá-los. O login Discord está implementado, mas não homologado com credenciais reais. A API (v0.6) expõe resolução institucional, catálogo, pedidos, Crypto e afiliados. `/admin` exige configuração OAuth/HMAC e autorização efetiva da API. Nunca conceda owner no frontend para contornar isso.
 
 Verificação: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run verify:client`, `npm run test:http` (detalhes em [testes](docs/TESTING.md)). Testes não usam banco, contas reais nem pagamentos.
 

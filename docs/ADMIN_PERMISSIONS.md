@@ -4,7 +4,7 @@ Discord OAuth autentica identidade; a API autoriza. POST /internal/site/admin/re
 
 Sem sessão: login. Conta desconhecida/inativa ou capability ausente: 403. API indisponível/não configurada: falha fechada. Cada página e handler verifica acesso. Não persistir capabilities no navegador.
 
-Catálogo central: D:/api suburbio/src/modules/admin/capabilities.ts. STANDARD não tem grants implícitos; overrides válidos concedem permissões e revokes prevalecem. Owner recebe todas. Grupos e expiração de overrides ainda pendentes.
+Catálogo central: `../api suburbio/src/modules/admin/capabilities.ts`. STANDARD não tem grants implícitos; overrides válidos concedem permissões e revokes prevalecem. Owner recebe todas. Grupos e expiração de overrides ainda pendentes.
 
 COUPONS_CREATE, COUPONS_UPDATE e COUPONS_DISABLE são exclusivos do owner, inclusive contra overrides legados. Domínio, painel, BFF, regras, métricas e reservas implementados com testes negativos de overrides adulterados.
 
@@ -24,7 +24,7 @@ AFFILIATES_READ, AFFILIATES_MANAGE, AFFILIATES_PAYOUT_READ e AFFILIATES_PAYOUT_M
 
 ## Cargos Discord — matriz definitiva (2026-10-09)
 
-Fonte: `D:/api suburbio/src/modules/admin/discord-role-matrix.ts`, aplicada pelo SYSTEM_OWNER com
+Fonte: `../api suburbio/src/modules/admin/discord-role-matrix.ts`, aplicada pelo SYSTEM_OWNER com
 `npm run admin:discord-roles -- --actor <discordId> [--apply]` (dry-run padrão; produção exige
 `APPLY_CONFIRM=<POSTGRES_DATABASE>`). Grava via `saveMapping`: motivo, auditoria `admin.discord.mapping.changed` e outbox.
 

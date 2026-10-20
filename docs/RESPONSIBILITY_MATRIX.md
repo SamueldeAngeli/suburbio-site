@@ -4,7 +4,7 @@ A API coordena o ecossistema, mas cada sistema executa aquilo que é naturalment
 
 ## Topologia operacional
 
-Na VPS: processos próprios do site Next.js, Subúrbio API/Fastify e bot Discord. PostgreSQL guarda estado institucional; Redis/Memurai guarda estado efêmero; MariaDB pertence à base QBCore. Apache termina/proxy HTTP conforme configuração. FiveM executa a base e o resource suburbio_bridge (Lua + JavaScript no runtime embutido Node 22). Bridge NÃO é um quarto daemon Node, aplicativo PM2 ou serviço externo.
+Na VPS: processos próprios do site Next.js, Subúrbio API/Fastify e bot Discord. PostgreSQL guarda estado institucional; Redis/Memurai guarda estado efêmero; MariaDB pertence à base QBCore. Um proxy HTTPS na frente termina TLS e expõe só as rotas públicas (ver `suburbiorp/docs/DEPLOYMENT.md`). FiveM executa a base e o resource suburbio_bridge (Lua + JavaScript no runtime embutido Node 22). Bridge NÃO é um quarto daemon Node, aplicativo PM2 ou serviço externo.
 
 | Domínio | Dono principal | API central necessária? |
 |---|---|---|
@@ -15,6 +15,7 @@ Na VPS: processos próprios do site Next.js, Subúrbio API/Fastify e bot Discord
 | Sala, código, host, autorização temporária, encerramento | Site + Redis/Memurai | Não |
 | Mensagem, embed, welcome, DM, comando, invite tracking | Bot | Não |
 | Logs locais Discord | Bot | Não |
+| Persistência de tickets e mensagens agendadas | API guarda (PostgreSQL); bot executa no Discord | Sim no modo api; SQLite local é fallback explícito |
 | Auditoria institucional | API | Sim |
 | Estado VIP/entitlement | API | Sim |
 | Cargo Discord derivado de VIP | Bot aplica | API decide estado |
@@ -26,7 +27,7 @@ Na VPS: processos próprios do site Next.js, Subúrbio API/Fastify e bot Discord
 
 ## Transmissão
 
-OAuth → sessão do site → Next.js → Redis/Memurai (metadados temporários com TTL) → token restrito de LiveKit. A mídia flui pelo WebRTC/SFU; não por Next, API nem Apache como proxy de vídeo. Sinalização HTTP não se confunde com proxy de mídia.
+OAuth → sessão do site → Next.js → Redis/Memurai (metadados temporários com TTL) → token restrito de LiveKit. A mídia flui pelo WebRTC/SFU; não por Next, API nem pelo proxy HTTPS como proxy de vídeo. Sinalização HTTP não se confunde com proxy de mídia.
 
 Estado atual: salas no Redis do site, tokens LiveKit emitidos pelo Next.js e mídia via LiveKit estão implementados e testados com LiveKit local; a ativação em produção depende de homologar domínio/TLS/TURN (`LIVEKIT_ENABLED`). Namespaces/credenciais Redis devem ser isolados entre site e API; nunca acessar chaves de saldo, autorização institucional ou locks financeiros pelo site.
 
