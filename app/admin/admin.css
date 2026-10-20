@@ -239,6 +239,30 @@
 .admin-panel-body > :last-child {
   margin-bottom: 0;
 }
+.admin-panel + .admin-panel {
+  margin-top: 24px;
+}
+/* Ação curta com motivo dentro de uma linha de tabela (ex.: encerrar transmissão). */
+.admin-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+.admin-inline-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #7990a8;
+}
+.admin-inline-form input {
+  background: #09131f;
+  border: 1px solid #31445c;
+  color: #edf4fb;
+  padding: 8px 10px;
+  border-radius: 4px;
+  min-width: 220px;
+}
 .admin-panel-title {
   display: flex;
   align-items: center;

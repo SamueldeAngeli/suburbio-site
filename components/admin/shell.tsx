@@ -22,6 +22,7 @@ import {
   ArrowUpRight,
   Menu,
   X,
+  MonitorPlay,
 } from 'lucide-react';
 import { logout } from '@/lib/auth/actions';
 import { adminPath, type AdminModule } from '@/lib/admin/modules';
@@ -40,6 +41,10 @@ const icons = [
   MessageCircle,
   Server,
   Settings,
+  ShoppingBag,
+  ShoppingBag,
+  ShoppingBag,
+  MonitorPlay,
 ];
 export function AdminShell({
   children,

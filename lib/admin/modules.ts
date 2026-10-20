@@ -173,5 +173,15 @@ export const adminModules: AdminModule[] = [
     filters: [],
     gap: '',
   },
+  {
+    slug: 'transmissoes',
+    title: 'Transmissões',
+    // Moderação reaproveita as capabilities de punição (capability dedicada é pendência na API).
+    capability: 'PUNISHMENTS_READ',
+    description: 'Transmissões de tela ao vivo e encerradas recentemente.',
+    columns: [],
+    filters: [],
+    gap: '',
+  },
 ];
 export const adminPath = (slug: string) => `/admin${slug ? `/${slug}` : ''}`;
