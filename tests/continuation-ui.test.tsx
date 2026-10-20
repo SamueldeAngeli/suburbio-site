@@ -148,12 +148,13 @@ it.each(['initiated', 'processing', 'refunded', 'review'] as const)(
     expect(html).not.toContain('<button');
   },
 );
-it('salas sem contrato não geram host, código ou participantes falsos', () => {
+it('central sem dados da API não inventa transmissões, contagens nem controles', () => {
   const html = render(<ScreenPreview />);
-  expect(html).toContain('Criar sala');
-  expect(html).toContain('Desconectado');
-  expect(html).toContain('Participantes (0)');
-  expect(html).not.toContain('Controles do host');
+  expect(html).toContain('Transmissões');
+  expect(html).toContain('Iniciar transmissão');
+  expect(html).toContain('Carregando transmissões');
+  expect(html).not.toContain('AO VIVO');
+  expect(html).not.toContain('Encerrar transmissão');
 });
 it('URL de imagem inválida invalida o campo sem lançar exceção', () => {
   for (const patch of [

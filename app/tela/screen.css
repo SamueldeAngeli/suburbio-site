@@ -1,229 +1,563 @@
-.screen-layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  min-height: 100dvh;
+/* /tela — central de transmissões e sala (transmissor e espectador).
+   Identidade do Subúrbio: grafite/azul-marinho, ciano de destaque, pouco brilho. */
+.tela-center,
+.tela-room {
+  --tela-bg: #090f18;
+  --tela-card: #101a27;
+  --tela-card-2: #0c1520;
+  --tela-line: #213043;
+  --tela-muted: #8ea2b8;
+  --tela-text: #f5f7fa;
+  --tela-accent: #47ceff;
+  --tela-live: #ff4d5e;
+  color: var(--tela-text);
 }
-.screen-sidebar {
-  padding: 32px 24px;
-  background: #0b1320;
-  border-right: 1px solid #213043;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-.screen-sidebar h2 {
-  font-size: 36px;
-}
-.screen-sidebar form {
-  display: grid;
-  gap: 12px;
-}
-.screen-sidebar input,
-.screen-layout select {
-  background: #09131f;
-  border: 1px solid #31445c;
-  color: #edf4fb;
-  padding: 12px;
-  max-width: 100%;
-  border-radius: 4px;
-}
-.screen-main {
-  padding: 32px;
-  min-width: 0;
-}
-.screen-main h1 {
-  font-size: clamp(28px, 3vw, 42px);
-}
-.screen-main header {
-  margin-bottom: 24px;
-}
-.screen-main p {
-  line-height: 1.65;
-  margin: 14px 0;
-}
-.screen-stage {
-  position: relative;
-  aspect-ratio: 16/9;
-  max-height: 65vh;
-  background: radial-gradient(ellipse at center, #132b40, #070e18);
-  border: 1px solid #213043;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.screen-stage video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.screen-empty {
+.sr-only {
   position: absolute;
-  inset: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.tela-center {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  display: grid;
+  gap: 32px;
+}
+.tela-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.tela-head h1 {
+  font: 700 clamp(40px, 5vw, 60px) / 1 var(--display);
+  letter-spacing: 0;
+  width: auto;
+  margin: 10px 0 8px;
+}
+.tela-head p {
+  margin: 0;
+  color: var(--tela-muted);
+}
+.tela-center h2,
+.tela-viewers h2 {
+  font: 700 22px/1.2 var(--display);
+  letter-spacing: 0;
+  margin: 0 0 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-direction: column;
+  gap: 10px;
+}
+.tela-count {
+  font: 700 12px/1 var(--body);
+  color: #06202c;
+  background: var(--tela-accent);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+.tela-muted {
+  color: var(--tela-muted);
+  font-size: 13px;
+}
+.tela-message {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid #2b465e;
+  background: #0f2233;
+  color: #cfe7f5;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.tela-notice {
+  border: 1px solid var(--tela-line);
+  background: var(--tela-card);
+  border-radius: 8px;
+  padding: 20px 22px;
+  display: grid;
+  gap: 8px;
+}
+.tela-notice strong {
+  font: 700 20px/1.2 var(--display);
+}
+.tela-notice p {
+  margin: 0;
+  color: var(--tela-muted);
+}
+.tela-notice div {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.tela-empty {
+  border: 1px dashed var(--tela-line);
+  border-radius: 8px;
+  padding: 36px 24px;
   text-align: center;
-  padding: 30px;
-  color: #91a4b9;
-  gap: 16px;
+  background: var(--tela-card-2);
 }
-.screen-empty h2 {
-  font-size: clamp(20px, 3vw, 32px);
-  color: #edf4fb;
+.tela-empty p {
+  margin: 6px 0 0;
+  color: var(--tela-muted);
 }
-.screen-badge {
+
+/* Cartões (estilo "Go Live": prévia, selo AO VIVO, contador de quem assiste). */
+.tela-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+.tela-tile {
+  background: var(--tela-card);
+  border: 1px solid var(--tela-line);
+  border-radius: 8px;
+  overflow: hidden;
+  display: grid;
+  transition: border-color 0.2s;
+}
+.tela-tile:hover {
+  border-color: #2f4a66;
+}
+.tela-tile > .button {
+  margin: 0 16px 16px;
+}
+.tela-tile-preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 45%, #15314a 0, transparent 60%), linear-gradient(160deg, #0d1a28, #070d15);
+}
+.tela-tile.is-live .tela-tile-preview {
+  background: radial-gradient(circle at 50% 45%, #163a56 0, transparent 62%), linear-gradient(160deg, #0e1e2f, #070d15);
+}
+.tela-tile-badges {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  background: #07111ee8;
-  border: 1px solid #29425b;
-  padding: 8px 12px;
-  font-size: 10px;
-  letter-spacing: 1px;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
 }
-.screen-controls {
+.tela-tile-time {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font: 600 12px/1 var(--body);
+  background: #000a;
+  padding: 5px 7px;
+  border-radius: 4px;
+}
+.tela-tile-body {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  align-items: flex-start;
+}
+.tela-tile-body h3 {
+  margin: 0 0 4px;
+  font: 700 17px/1.2 var(--display);
+  letter-spacing: 0;
+}
+.tela-tile-body p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tela-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.tela-description {
+  margin: 6px 0 0 !important;
+  font-size: 13px;
+  color: var(--tela-muted);
+  display: block !important;
+  overflow-wrap: anywhere;
+}
+.tela-tag {
+  font-size: 11px;
+  border: 1px solid #2b465e;
+  color: #8cceeb;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.tela-live {
+  font: 800 11px/1 var(--body);
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: var(--tela-live);
+  padding: 5px 7px;
+  border-radius: 4px;
+}
+.tela-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 11px/1 var(--body);
+  color: #e6eef6;
+  background: #000000a8;
+  padding: 5px 7px;
+  border-radius: 4px;
+}
+.tela-avatar {
+  border-radius: 50%;
+  flex: none;
+  object-fit: cover;
+  background: #13263a;
+}
+.tela-avatar-fallback {
+  display: inline-grid;
+  place-items: center;
+  font: 700 14px/1 var(--display);
+  color: var(--tela-accent);
+}
+.tela-mine {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) 1fr;
+  gap: 20px;
+  align-items: center;
+  border: 1px solid #23415c;
+  background: linear-gradient(120deg, #0f2133, #0b141f);
+  border-radius: 10px;
+  padding: 18px;
+}
+.tela-mine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.tela-mine-actions p {
+  width: 100%;
+  margin: 0 0 4px;
+  color: #cfe7f5;
+}
+.tela-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.tela-history li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--tela-card-2);
+  border: 1px solid var(--tela-line);
+  border-radius: 6px;
+}
+.tela-history strong {
+  display: block;
+  font-size: 14px;
+}
+.tela-history span,
+.tela-history time {
+  font-size: 12px;
+  color: var(--tela-muted);
+}
+
+/* Sala: palco em destaque e lista de quem assiste ao lado. */
+.tela-room {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.tela-room-main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.tela-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--tela-line);
+  outline: none;
+}
+.tela-stage.is-fullscreen {
+  border: 0;
+  border-radius: 0;
+}
+.tela-media,
+.tela-media .tela-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tela-media .tela-video {
+  object-fit: contain;
+  background: #000;
+}
+.tela-media-audio {
+  display: none;
+}
+.tela-stage-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 40%, #10243a, #05090f 70%);
+}
+.tela-stage-empty strong {
+  font: 700 clamp(20px, 2.4vw, 28px) / 1.2 var(--display);
+}
+.tela-stage-empty p {
+  margin: 0;
+  max-width: 460px;
+  color: var(--tela-muted);
+}
+.tela-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid #ffffff22;
+  border-top-color: var(--tela-accent);
+  animation: tela-spin 0.9s linear infinite;
+}
+@keyframes tela-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.tela-overlay-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+/* Controles do espectador: aparecem ao passar o mouse ou focar, sem cobrir a imagem o tempo todo. */
+.tela-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 14px 12px;
+  background: linear-gradient(transparent, #000c);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  z-index: 2;
+}
+.tela-stage:hover .tela-controls,
+.tela-stage:focus-within .tela-controls {
+  opacity: 1;
+  transform: none;
+}
+.tela-controls button {
+  background: #ffffff14;
+  color: #fff;
+  border: 1px solid #ffffff22;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tela-controls button:hover {
+  border-color: var(--tela-accent);
+}
+.tela-controls button.danger {
+  background: #3a1219;
+  border-color: #6b2330;
+}
+.tela-volume input {
+  width: 96px;
+  accent-color: var(--tela-accent);
+}
+.tela-spacer {
+  flex: 1;
+}
+.tela-info {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.tela-info h1 {
+  font: 700 clamp(22px, 2.4vw, 30px) / 1.15 var(--display);
+  letter-spacing: 0;
+  margin: 0 0 4px;
+  width: auto;
+}
+.tela-info p {
+  margin: 0;
+  color: var(--tela-muted);
+  font-size: 14px;
+}
+.tela-host-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 20px 0;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--tela-line);
+  background: var(--tela-card);
+  border-radius: 8px;
 }
-.screen-controls label {
-  display: flex;
+.tela-host-state {
+  font: 700 13px/1 var(--body);
+  color: var(--tela-muted);
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
 }
-.screen-controls .button {
-  padding: 12px;
+.tela-host-state::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5a6b7d;
+}
+.tela-host-state.is-live {
+  color: #fff;
+}
+.tela-host-state.is-live::before {
+  background: var(--tela-live);
+}
+.tela-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
+  color: var(--tela-muted);
 }
-.screen-layout details {
-  border: 1px solid #213043;
+.tela-center select,
+.tela-room select,
+.tela-dialog input,
+.tela-dialog textarea,
+.tela-dialog select {
+  background: #09131f;
+  border: 1px solid #31445c;
+  color: #edf4fb;
+  padding: 9px 10px;
+  border-radius: 4px;
+  font: inherit;
+  max-width: 100%;
+}
+.button.danger {
+  background: #3a1219;
+  border-color: #7a2735;
+  color: #ffd9de;
+}
+.button.danger:hover {
+  background: #4a1720;
+  box-shadow: none;
+}
+.tela-viewers {
+  border: 1px solid var(--tela-line);
+  background: var(--tela-card-2);
+  border-radius: 8px;
   padding: 16px;
-  border-radius: 5px;
+  align-self: start;
 }
-.screen-layout summary {
-  cursor: pointer;
-}
-.screen-layout fieldset {
-  border: 0;
+.tela-viewers ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
-  gap: 12px;
-  margin-top: 15px;
+  gap: 10px;
 }
-.screen-layout button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.tela-viewers li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
 }
-.screen-layout :focus-visible {
-  outline: 2px solid #47ceff;
-  outline-offset: 4px;
+.tela-viewers li > span:not(.tela-avatar) {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.screen-sidebar details button {
-  display: block;
-  padding: 8px;
-}
-.screen-stage:fullscreen {
-  max-height: none;
-  height: 100vh;
-  aspect-ratio: auto;
-}
-.screen-empty svg {
-  color: #47ceff;
-}
-@media (max-width: 900px) {
-  .screen-layout {
-    grid-template-columns: 1fr;
-  }
-  .screen-sidebar {
-    border-right: 0;
-    border-bottom: 1px solid #213043;
-  }
-  .screen-main {
-    padding: 22px;
-  }
-  .screen-stage {
-    min-height: 260px;
-  }
-  .screen-controls {
-    align-items: stretch;
-  }
-  .screen-controls .button {
-    flex: 1;
-  }
-  .screen-controls label {
-    flex-wrap: wrap;
-  }
-  .screen-empty p {
-    font-size: 12px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .screen-layout * {
-    animation: none !important;
-    transition: none !important;
-  }
+.tela-link {
+  background: none;
+  border: 0;
+  color: #8cceeb;
+  font-size: 12px;
+  padding: 0;
 }
 
-/* Native controls retain the city palette, including secondary room actions. */
-.screen-layout button:not(.button) {
-  appearance: none;
-  background: #112234;
-  color: #e9f3fb;
-  border: 1px solid #35506a;
-  border-radius: 6px;
-  padding: 10px 14px;
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.4;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
-}
-.screen-layout button:not(.button):hover:not(:disabled) {
-  background: #19364b;
-  border-color: #47ceff;
-}
-.screen-layout button:disabled {
-  background: #13202e;
-  color: #889aad;
-  border-color: #26384a;
-  opacity: 0.7;
-}
-.screen-sidebar > div {
+/* Diálogos (iniciar e confirmar encerramento). */
+.tela-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #02060bcc;
   display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.screen-sidebar p,
-.screen-sidebar strong {
-  overflow-wrap: anywhere;
-}
-.screen-main > .screen-stage {
-  height: auto;
-  min-height: 300px;
-  max-height: none;
-  aspect-ratio: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-  gap: 16px;
+  place-items: center;
   padding: 16px;
+  z-index: 50;
 }
-.screen-stage > div {
-  min-width: 0;
+.tela-dialog {
+  width: min(560px, 100%);
+  background: var(--tela-card, #101a27);
+  border: 1px solid #2a3f56;
+  border-radius: 10px;
+  padding: 24px;
+  display: grid;
+  gap: 14px;
+  color: #f5f7fa;
 }
-.screen-stage > div:has(audio) {
-  display: none;
+.tela-dialog h2 {
+  font: 700 26px/1.1 var(--display);
+  letter-spacing: 0;
+  margin: 0;
 }
-.screen-stage video {
-  display: block;
-  height: auto;
-  max-height: 65vh;
-  border-radius: 8px;
-  background: #050a10;
+.tela-dialog p {
+  margin: 0;
+  color: #8ea2b8;
 }
+.tela-dialog > div:last-child,
+.tela-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tela-start label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: #c9d6e3;
+}
+.tela-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+.tela-check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+}
+.tela-check input {
+  accent-color: #47ceff;
+}
+
+/* Serviço desligado (renderizado no servidor). */
 .screen-unavailable {
   max-width: 560px;
   margin: 12vh auto;
@@ -236,4 +570,49 @@
   margin: 12px 0;
   color: #edf4fb;
   font-size: clamp(22px, 3vw, 32px);
+}
+
+@media (max-width: 960px) {
+  .tela-room {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+  .tela-mine {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .tela-center {
+    padding: 24px 16px 48px;
+  }
+  .tela-row {
+    grid-template-columns: 1fr;
+  }
+  .tela-volume {
+    display: none;
+  }
+  /* Em toque não há hover: controles sempre visíveis, compactos, sem cobrir a imagem. */
+  .tela-controls {
+    opacity: 1;
+    transform: none;
+    padding: 18px 8px 8px;
+    gap: 6px;
+  }
+  .tela-controls button {
+    padding: 6px 8px;
+  }
+  .tela-history li {
+    grid-template-columns: auto 1fr;
+  }
+  .tela-history time {
+    grid-column: 2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tela-spinner {
+    animation: none;
+  }
+  .tela-controls {
+    transition: none;
+  }
 }

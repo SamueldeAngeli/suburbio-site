@@ -5,15 +5,14 @@ import { ScreenPreview } from '@/components/screen/screen-preview';
 import '../admin/admin.css';
 import './screen.css';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Compartilhar tela — Subúrbio RP', robots: { index: false, follow: false } };
+export const metadata = { title: 'Transmissões — Subúrbio RP', robots: { index: false, follow: false } };
 
 // Flag desligada ou configuração inválida: estado indisponível limpo, sem montar a UI de mídia.
-function screenConfig() {
+function screenEnabled() {
   try {
-    const env = serverEnv();
-    return env.LIVEKIT_ENABLED ? { maxCapacity: env.LIVEKIT_ROOM_MAX_PARTICIPANTS } : null;
+    return serverEnv().LIVEKIT_ENABLED === true;
   } catch {
-    return null;
+    return false;
   }
 }
 
@@ -23,13 +22,14 @@ export default async function ScreenPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   if (!(await currentSession())) {
-    // Link de convite (/tela?room=CODE) preserva a sala através do login.
-    const room = (await searchParams).room;
-    const target = typeof room === 'string' && /^[A-F0-9]{10}$/.test(room) ? `/tela?room=${room}` : '/tela';
+    // Link de transmissão (/tela?room=CODE[&invite=KEY]) preserva sala e convite através do login.
+    const { room, invite } = await searchParams;
+    const code = typeof room === 'string' && /^[A-F0-9]{10}$/.test(room) ? room : null;
+    const key = typeof invite === 'string' && /^[a-f0-9]{32}$/.test(invite) ? invite : null;
+    const target = code ? `/tela?room=${code}${key ? `&invite=${key}` : ''}` : '/tela';
     redirect(`/login?returnTo=${encodeURIComponent(target)}`);
   }
-  const config = screenConfig();
-  if (!config)
+  if (!screenEnabled())
     return (
       <main className="admin-root">
         <section className="screen-unavailable" role="status">
@@ -41,7 +41,7 @@ export default async function ScreenPage({
     );
   return (
     <main className="admin-root">
-      <ScreenPreview maxCapacity={config.maxCapacity} />
+      <ScreenPreview />
     </main>
   );
 }

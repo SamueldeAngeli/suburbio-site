@@ -12,7 +12,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/components/screen/screen-preview', () => ({
-  ScreenPreview: ({ maxCapacity }: { maxCapacity: number }) => <div>UI de transmissão · {maxCapacity}</div>,
+  ScreenPreview: () => <div>UI de transmissão</div>,
 }));
 import ScreenPage from '@/app/tela/page';
 const noParams = { searchParams: Promise.resolve({}) };
@@ -39,10 +39,10 @@ it('configuração inválida também vira indisponível, sem stack trace', async
   expect(document.body.textContent).not.toContain('LIVEKIT_API_SECRET');
 });
 
-it('ligada, entrega à UI só a capacidade máxima (nenhum segredo)', async () => {
+it('ligada, monta a UI sem entregar nenhum segredo', async () => {
   m.env.mockReturnValue({ LIVEKIT_ENABLED: true, LIVEKIT_ROOM_MAX_PARTICIPANTS: 6, LIVEKIT_API_SECRET: 'segredo' });
   render(await ScreenPage(noParams));
-  expect(screen.getByText('UI de transmissão · 6')).toBeTruthy();
+  expect(screen.getByText('UI de transmissão')).toBeTruthy();
   expect(document.body.textContent).not.toContain('segredo');
 });
 
@@ -64,4 +64,19 @@ it('código de sala inválido não entra no retorno', async () => {
     'NEXT_REDIRECT',
   );
   expect(m.redirect).toHaveBeenCalledWith('/login?returnTo=%2Ftela');
+});
+
+it('convite privado também sobrevive ao login; convite malformado é descartado', async () => {
+  m.session.mockResolvedValue(null);
+  const invite = 'a'.repeat(32);
+  await expect(ScreenPage({ searchParams: Promise.resolve({ room: 'ABCDEF1234', invite }) })).rejects.toThrow(
+    'NEXT_REDIRECT',
+  );
+  expect(m.redirect).toHaveBeenLastCalledWith(
+    '/login?returnTo=' + encodeURIComponent('/tela?room=ABCDEF1234&invite=' + invite),
+  );
+  await expect(
+    ScreenPage({ searchParams: Promise.resolve({ room: 'ABCDEF1234', invite: 'x&returnTo=//evil' }) }),
+  ).rejects.toThrow('NEXT_REDIRECT');
+  expect(m.redirect).toHaveBeenLastCalledWith('/login?returnTo=%2Ftela%3Froom%3DABCDEF1234');
 });
