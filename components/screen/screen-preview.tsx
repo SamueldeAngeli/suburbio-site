@@ -48,6 +48,7 @@ const NOTICE: Partial<Record<Phase, { title: string; text: string }>> = {
 };
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000];
 const LIST_REFRESH_MS = 15_000;
+const IDLE_MS = 2_500;
 const SESSION_KEY = 'suburbio:tela:sala';
 const CODE = /^[A-F0-9]{10}$/;
 const INVITE = /^[a-f0-9]{32}$/;
@@ -214,7 +215,9 @@ export function ScreenPreview() {
     // Rascunho do formulário de início: sobrevive a uma captura cancelada ou negada.
     [draft, setDraft] = useState<StartForm | null>(null),
     [confirmEnd, setConfirmEnd] = useState(false),
-    [fullscreen, setFullscreen] = useState(false);
+    [fullscreen, setFullscreen] = useState(false),
+    // Mouse parado sobre o vídeo: esconde controles, selos e cursor (como no Discord).
+    [idle, setIdle] = useState(false);
   const capture = useRef<CaptureController | null>(null),
     room = useRef<Room | null>(null),
     screen = useRef<MediaStream | null>(null),
@@ -299,6 +302,20 @@ export function ScreenPreview() {
       document.removeEventListener('visibilitychange', visible);
     };
   }, [inRoom, loadList]);
+
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    overControls = useRef(false);
+  const wake = useCallback(() => {
+    setIdle(false);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => !overControls.current && setIdle(true), IDLE_MS);
+  }, []);
+  useEffect(() => () => void (idleTimer.current && clearTimeout(idleTimer.current)), []);
+  // Ao entrar na transmissão já começa a contar: sem mexer o mouse, os controles somem sozinhos.
+  const connected = !!connection;
+  useEffect(() => {
+    if (connected) wake();
+  }, [connected, wake]);
 
   useEffect(() => {
     const change = () => setFullscreen(document.fullscreenElement === stage.current && !!stage.current);
@@ -799,9 +816,16 @@ export function ScreenPreview() {
       <div className="tela-room-main">
         <div
           ref={stage}
-          className={`tela-stage${fullscreen ? ' is-fullscreen' : ''}`}
+          className={`tela-stage${fullscreen ? ' is-fullscreen' : ''}${idle ? ' is-idle' : ''}`}
           tabIndex={0}
           aria-label="Transmissão"
+          onMouseMove={wake}
+          onPointerDown={wake}
+          onKeyDown={wake}
+          onMouseLeave={() => {
+            overControls.current = false;
+            setIdle(true);
+          }}
         >
           {screenTrack?.track && <Media track={screenTrack.track} muted volume={volume} />}
           {audioTracks.map((pub) => (
@@ -855,7 +879,13 @@ export function ScreenPreview() {
             </span>
           </div>
           {!isHost && (
-            <div className="tela-controls" role="toolbar" aria-label="Controles do espectador">
+            <div
+              className="tela-controls"
+              role="toolbar"
+              aria-label="Controles do espectador"
+              onMouseEnter={() => (overControls.current = true)}
+              onMouseLeave={() => (overControls.current = false)}
+            >
               <button onClick={() => setMuted((v) => !v)} aria-pressed={muted}>
                 {muted ? 'Ativar som' : 'Silenciar'}
               </button>

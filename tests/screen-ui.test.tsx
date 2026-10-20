@@ -343,6 +343,30 @@ describe('quem assiste', () => {
     await waitFor(() => expect(requestFullscreen).toHaveBeenCalled());
     expect(requestFullscreen.mock.contexts[0]).toBe(screen.getByLabelText('Transmissão'));
   });
+  it('mouse parado esconde controles e selos; mexer o mouse mostra de novo', async () => {
+    m.identity = OTHER;
+    backend(() => Response.json(connection('participant')));
+    history.replaceState(null, '', '/tela?room=ABCDEF1234');
+    render(<ScreenPreview />);
+    await screen.findByRole('toolbar', { name: 'Controles do espectador' });
+    const stage = screen.getByLabelText('Transmissão');
+    vi.useFakeTimers();
+    fireEvent.mouseMove(stage);
+    expect(stage.className).not.toContain('is-idle');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_600);
+    });
+    expect(stage.className).toContain('is-idle');
+    fireEvent.mouseMove(stage);
+    expect(stage.className).not.toContain('is-idle');
+    // Mouse sobre a barra de controles: não some enquanto estiver ali.
+    fireEvent.mouseEnter(screen.getByRole('toolbar', { name: 'Controles do espectador' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(stage.className).not.toContain('is-idle');
+    vi.useRealTimers();
+  });
   it('link de convite privado envia o convite na entrada', async () => {
     m.identity = OTHER;
     const fetch = backend(() => Response.json(connection('participant')));

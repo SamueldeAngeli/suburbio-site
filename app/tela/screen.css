@@ -344,6 +344,7 @@
   display: flex;
   gap: 6px;
   z-index: 2;
+  transition: opacity 0.3s;
 }
 /* Controles do espectador: aparecem ao passar o mouse ou focar, sem cobrir a imagem o tempo todo. */
 .tela-controls {
@@ -367,6 +368,15 @@
 .tela-stage:focus-within .tela-controls {
   opacity: 1;
   transform: none;
+}
+/* Mouse parado (ou fora do vídeo): só a imagem fica visível, sem cursor. Vale também no celular e com foco. */
+.tela-stage.is-idle {
+  cursor: none;
+}
+.tela-stage.is-idle .tela-controls,
+.tela-stage.is-idle .tela-overlay-top {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 .tela-controls button {
   background: #ffffff14;
