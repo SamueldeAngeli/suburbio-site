@@ -292,7 +292,8 @@ export function ProductEditor({
         </label>
         {deliveryType === 'CHARACTER_SLOT' && (
           <p className="admin-note">
-            Slots devem permanecer inativos até a validação da base FiveM real. Limite máximo: 5.
+            Entregue pela cidade (suburbio_entregas): sempre permanente e não renovável. Limite máximo: 5 por conta;
+            quem já tem 5 não recebe e a entrega fica pendente para a staff.
           </p>
         )}
         <label>
@@ -351,7 +352,7 @@ export function ProductEditor({
               <option disabled value="CRYPTO">
                 CRYPTO — Cadastro aguardando contrato
               </option>
-              <option value="CHARACTER_SLOT">CHARACTER_SLOT — Aguardando base real</option>
+              <option value="CHARACTER_SLOT">CHARACTER_SLOT — Slot de personagem</option>
             </select>
           </label>
           <label>
