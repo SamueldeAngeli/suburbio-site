@@ -32,6 +32,8 @@ before(async () => {
         SUBURBIO_API_ENABLED: 'false',
         // Smoke HTTP não cobre transmissão; independe do .env.local do desenvolvedor.
         LIVEKIT_ENABLED: 'false',
+        // Sem Redis: o teste de readiness espera o rate limit local, mesmo com Redis no .env.local.
+        REDIS_URL: '',
       },
     },
   );
