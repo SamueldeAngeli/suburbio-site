@@ -407,18 +407,24 @@ export class SuburbioApiClient {
       throw new SiteError('INVALID_INPUT', 400);
     return this.request(
       '/internal/site/orders/' + id + '/checkout',
-      z.object({
-        checkoutUrl: z.url().refine((v) => {
-          const u = new URL(v);
-          return (
-            u.protocol === 'https:' &&
-            !u.username &&
-            !u.password &&
-            ['www.mercadopago.com.br', 'sandbox.mercadopago.com.br'].includes(u.hostname)
-          );
+      z.union([
+        z.object({
+          checkoutUrl: z.url().refine((v) => {
+            // Zod roda o refine mesmo com URL inválida: não pode lançar.
+            if (!URL.canParse(v)) return false;
+            const u = new URL(v);
+            return (
+              u.protocol === 'https:' &&
+              !u.username &&
+              !u.password &&
+              ['www.mercadopago.com.br', 'sandbox.mercadopago.com.br'].includes(u.hostname)
+            );
+          }),
+          operationId: uuid,
         }),
-        operationId: uuid,
-      }),
+        // Pedido de R$ 0,00 (cupom de 100%): a API confirma sem Mercado Pago.
+        z.object({ confirmed: z.literal(true), orderId: uuid, operationId: uuid }),
+      ]),
       { method: 'POST', body: { customerDiscordId }, idempotencyKey: key },
     );
   }

@@ -48,3 +48,16 @@ it('etapas não confundem pagamento aprovado com entrega pendente', () => {
   expect(html).toContain('Aguardando confirmação de entrega');
   expect(html).not.toContain('Compra entregue');
 });
+it('pedido de R$ 0,00 volta confirmado, sem link de pagamento', async () => {
+  const transport = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(Response.json({ confirmed: true, orderId: playerId, operationId }));
+  const { data } = await new SuburbioApiClient(config, transport).checkout(discordId, playerId, operationId);
+  expect(data).toEqual({ confirmed: true, orderId: playerId, operationId });
+});
+it('URL de checkout malformada é recusada sem quebrar a validação', async () => {
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ checkoutUrl: 'nao-e-url', operationId }));
+  await expect(
+    new SuburbioApiClient(config, transport).checkout(discordId, playerId, operationId),
+  ).rejects.toMatchObject({ code: 'API_INVALID_RESPONSE' });
+});

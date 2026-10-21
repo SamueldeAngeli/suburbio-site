@@ -1,9 +1,12 @@
 'use client';
 import { useRef, useState } from 'react';
-export function CheckoutOrder({ id }: { id: string }) {
+import { useRouter } from 'next/navigation';
+// free: total R$ 0,00 (cupom de 100%) — a API confirma o pedido sem Mercado Pago.
+export function CheckoutOrder({ id, free = false }: { id: string; free?: boolean }) {
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(''),
-    key = useRef('');
+    key = useRef(''),
+    router = useRouter();
   async function pay() {
     if (busy) return;
     key.current ||= crypto.randomUUID();
@@ -18,6 +21,11 @@ export function CheckoutOrder({ id }: { id: string }) {
       const result = await response.json();
       if (!response.ok) {
         setMessage(result.error?.message ?? 'Não foi possível preparar o pagamento.');
+        return;
+      }
+      if (result.data.confirmed === true) {
+        setMessage('Pedido confirmado. A entrega segue as etapas abaixo.');
+        router.refresh();
         return;
       }
       const url = new URL(result.data.checkoutUrl);
@@ -38,7 +46,13 @@ export function CheckoutOrder({ id }: { id: string }) {
   return (
     <div>
       <button className="button" onClick={pay} disabled={busy}>
-        {busy ? 'Preparando pagamento…' : 'Pagar com Mercado Pago'}
+        {free
+          ? busy
+            ? 'Confirmando…'
+            : 'Confirmar pedido gratuito'
+          : busy
+            ? 'Preparando pagamento…'
+            : 'Pagar com Mercado Pago'}
       </button>
       {message && <p role="status">{message}</p>}
     </div>

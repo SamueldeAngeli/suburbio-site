@@ -81,7 +81,7 @@ export default async function Order({ params }: { params: Promise<{ id: string }
               </p>
               {data.status === 'pending' && (
                 <>
-                  <CheckoutOrder id={id} />
+                  <CheckoutOrder id={id} free={Number(data.netAmountMinor) === 0} />
                   {data.reservationStatus === 'reserved' && <CancelOrder id={id} />}
                 </>
               )}

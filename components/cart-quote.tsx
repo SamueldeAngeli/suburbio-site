@@ -123,10 +123,13 @@ export function CartQuote({ cart, couponCode }: { cart: Record<string, number>; 
         {state.quote.checkoutAvailable ? (
           <>
             <p>
-              Ao continuar, a cidade verificará a disponibilidade dos itens. O pagamento será feito no Mercado Pago.
+              Ao continuar, a cidade verificará a disponibilidade dos itens.{' '}
+              {state.quote.netAmountMinor === 0
+                ? 'O cupom cobre o valor total: não há pagamento, é só confirmar o pedido.'
+                : 'O pagamento será feito no Mercado Pago.'}
             </p>
             <button className="button" disabled={busy || (recipientMode === 'gift' && !gift)} onClick={purchase}>
-              {busy ? 'Criando pedido…' : 'Continuar para pagamento'}
+              {busy ? 'Criando pedido…' : state.quote.netAmountMinor === 0 ? 'Continuar' : 'Continuar para pagamento'}
             </button>
           </>
         ) : (
