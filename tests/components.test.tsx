@@ -16,7 +16,7 @@ describe('Componentes críticos e limites client/server', () => {
         <div>Conteúdo</div>
       </AdminShell>,
     );
-    expect(html).toContain('SYSTEM_OWNER');
+    expect(html).toContain('Dono do sistema');
     expect(html).toContain('Sair da conta');
     expect(html).toContain('aria-current="page"');
     expect(html).not.toContain('href="/admin/payments"');

@@ -8,6 +8,7 @@ import { TIMELINE_TYPES } from '@/lib/api/player-profile-contracts';
 import { ErrorState } from './states';
 import { DiscordIdentityCard } from './discord-identity';
 import { duration } from './player-activity';
+import { actionLabel as auditActionLabel } from '@/lib/admin/lists';
 
 // Abas da ficha: cada componente busca só os próprios dados (lazy). RBAC validado na API;
 // RESTRICTED/UNAVAILABLE são exibidos como tais, nunca como zero.
@@ -306,6 +307,14 @@ const actionLabel: Record<string, string> = {
   expired: 'Expirado',
   revoked: 'Revogado',
 };
+// Motivos de saída enviados pelo FiveM.
+const reasonLabel: Record<string, string> = {
+  quit: 'saiu pelo jogo',
+  exiting: 'saiu pelo jogo',
+  timeout: 'conexão caiu',
+  kicked: 'expulso',
+  dropped: 'conexão caiu',
+};
 export async function PlayerTimeline({
   discordId,
   playerId,
@@ -354,8 +363,9 @@ export async function PlayerTimeline({
         {data.items.map((e) => (
           <li key={`${e.type}:${e.id}`}>
             <time dateTime={e.at}>{when(e.at)}</time> · <strong>{typeLabel[e.type]}</strong> ·{' '}
-            {actionLabel[e.action] ?? e.action}
-            {typeof e.detail.reason === 'string' && ` · ${e.detail.reason}`}
+            <span title={e.action}>{actionLabel[e.action] ?? auditActionLabel(e.action)}</span>
+            {typeof e.detail.reason === 'string' &&
+              ` · ${reasonLabel[e.detail.reason.toLowerCase()] ?? e.detail.reason}`}
           </li>
         ))}
       </ol>

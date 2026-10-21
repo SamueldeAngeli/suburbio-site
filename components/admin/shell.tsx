@@ -114,7 +114,7 @@ export function AdminShell({
           <div className="admin-identity">
             <span>
               {name}
-              {owner && <small>SYSTEM_OWNER</small>}
+              {owner && <small>Dono do sistema</small>}
             </span>
             <form action={logout}>
               <button aria-label="Sair da conta">

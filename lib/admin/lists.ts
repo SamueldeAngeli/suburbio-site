@@ -2,7 +2,7 @@ import type { AdminListKind } from '@/lib/api/client';
 
 // Colunas das listas somente leitura do Admin. O formato orienta só a exibição (dinheiro, data, estado);
 // os dados e a autorização vêm da API.
-export type ColumnFormat = 'text' | 'id' | 'money' | 'date' | 'status' | 'discord';
+export type ColumnFormat = 'text' | 'id' | 'money' | 'date' | 'status' | 'discord' | 'action' | 'level' | 'unix';
 export type Column = { key: string; label: string; format?: ColumnFormat; currencyKey?: string };
 export type AdminListConfig = {
   kind: AdminListKind;
@@ -87,9 +87,9 @@ export const adminLists: Record<string, AdminListConfig> = {
     columns: [
       { key: 'createdAt', label: 'Data', format: 'date' },
       { key: 'actorDiscordId', label: 'Executor', format: 'discord' },
-      { key: 'service', label: 'Serviço' },
-      { key: 'action', label: 'Ação' },
-      { key: 'targetType', label: 'Alvo' },
+      { key: 'service', label: 'Origem', format: 'action' },
+      { key: 'action', label: 'Ação', format: 'action' },
+      { key: 'targetType', label: 'Alvo', format: 'action' },
       { key: 'targetId', label: 'ID do alvo', format: 'id' },
       { key: 'reason', label: 'Motivo' },
       { key: 'operationId', label: 'Operação', format: 'id' },
@@ -103,9 +103,9 @@ export const adminLists: Record<string, AdminListConfig> = {
       { key: 'id', label: 'ID' },
       { key: 'name', label: 'Nome' },
       { key: 'license', label: 'License', format: 'id' },
-      { key: 'discord', label: 'Discord' },
+      { key: 'discord', label: 'Discord', format: 'discord' },
       { key: 'reason', label: 'Motivo' },
-      { key: 'expire', label: 'Expira (valor da base)' },
+      { key: 'expire', label: 'Expira', format: 'unix' },
       { key: 'bannedBy', label: 'Aplicado por' },
     ],
   },
@@ -117,7 +117,7 @@ export const adminLists: Record<string, AdminListConfig> = {
     empty: 'Nenhuma conta administrativa.',
     columns: [
       { key: 'discordId', label: 'Administrador', format: 'discord' },
-      { key: 'level', label: 'Nível' },
+      { key: 'level', label: 'Nível', format: 'level' },
       { key: 'status', label: 'Status', format: 'status' },
       { key: 'capabilities', label: 'Permissões (− = negada)' },
       { key: 'updatedAt', label: 'Atualizado em', format: 'date' },
@@ -177,6 +177,112 @@ const STATUS: Record<string, string> = {
   disabled: 'Desativado',
 };
 
+// Códigos da auditoria (ex.: "allowlist.revoked") em português: verbo no fim, assunto antes.
+const SUBJECT: Record<string, string> = {
+  admin: 'Administração',
+  admin_account: 'Conta administrativa',
+  affiliate: 'Afiliado',
+  allowlist: 'Allowlist',
+  catalog: 'Catálogo',
+  category: 'Categoria',
+  checkout: 'Checkout',
+  commission: 'Comissão',
+  coupon: 'Cupom',
+  crypto: 'Crypto',
+  discord: 'Discord',
+  entitlement: 'Benefício',
+  fulfillment: 'Entrega',
+  gift: 'Presente',
+  identity: 'Identidade',
+  notification: 'Notificação',
+  order: 'Pedido',
+  owner: 'Dono',
+  payment: 'Pagamento',
+  payout: 'Repasse',
+  player: 'Jogador',
+  product: 'Produto',
+  purchase: 'Compra',
+  reservation: 'Reserva',
+  ticket: 'Ticket',
+  vip: 'VIP',
+  capability: 'Permissão',
+  status: 'Status',
+  balance: 'Saldo',
+  challenge: 'Desafio',
+  legacy: 'Legado',
+  mapping: 'Cargos',
+  site: 'Site',
+  api: 'API',
+  'discord-bot': 'Bot do Discord',
+  'fivem-bridge': 'Bridge FiveM',
+  'system-bootstrap': 'Instalação inicial',
+};
+const VERB: Record<string, string> = {
+  activated: 'ativação',
+  adjust: 'ajuste',
+  adjusted: 'ajuste',
+  approved: 'aprovação',
+  bootstrap: 'definição inicial',
+  bootstrapped: 'definição inicial',
+  cancel: 'cancelamento',
+  cancelled: 'cancelamento',
+  changed: 'alteração',
+  check: 'consulta',
+  completed: 'conclusão',
+  confirm: 'confirmação',
+  create: 'criação',
+  created: 'criação',
+  credited: 'crédito',
+  debited: 'débito',
+  defer: 'adiamento',
+  deferred: 'adiamento',
+  delivered: 'entrega',
+  disabled: 'desativação',
+  escalated: 'escalonamento',
+  expire: 'expiração',
+  expired: 'expiração',
+  fulfilled: 'entrega',
+  import: 'importação',
+  imported: 'importação',
+  noop: 'sem efeito',
+  pending: 'pendência',
+  prepare: 'preparação',
+  ready: 'pronto',
+  reapproved: 'nova aprovação',
+  received: 'recebimento',
+  reconcile: 'conciliação',
+  reconciled: 'conciliação',
+  recorded: 'registro',
+  redeem: 'resgate',
+  released: 'liberação',
+  renewed: 'renovação',
+  requested: 'solicitação',
+  reversed: 'estorno',
+  review_required: 'revisão necessária',
+  revoke: 'revogação',
+  revoked: 'revogação',
+  sync: 'sincronização',
+  uncertain: 'resultado incerto',
+  update: 'alteração',
+  updated: 'alteração',
+};
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export function actionLabel(code: string) {
+  if (SUBJECT[code]) return SUBJECT[code];
+  const parts = code.split('.');
+  const verb = parts.length > 1 ? VERB[parts[parts.length - 1]] : undefined;
+  const subject = (verb ? parts.slice(0, -1) : parts).map((p) => SUBJECT[p] ?? p.replace(/_/g, ' '));
+  // Assunto repetido ("Administração · Dono") lê melhor só com o mais específico.
+  const what = subject.length > 1 && subject[0] === 'Administração' ? subject.slice(1) : subject;
+  return verb ? `${capitalize(verb)} · ${what.join(' ')}` : capitalize(what.join(' '));
+}
+
+const LEVEL: Record<string, string> = {
+  SYSTEM_OWNER: 'Dono do sistema',
+  STANDARD: 'Administrador',
+  ADMIN: 'Administrador',
+};
+
 export function formatCell(row: Record<string, unknown>, column: Column): string {
   const value = row[column.key];
   if (value === null || value === undefined || value === '') return '—';
@@ -197,8 +303,22 @@ export function formatCell(row: Record<string, unknown>, column: Column): string
     }
     case 'status':
       return STATUS[String(value)] ?? String(value);
-    case 'id':
-      return String(value).length > 13 ? `${String(value).slice(0, 8)}…` : String(value);
+    case 'action':
+      return actionLabel(String(value));
+    case 'level':
+      return LEVEL[String(value)] ?? String(value);
+    case 'unix': {
+      // qb-core grava segundos Unix; 2147483647 é o "permanente" da base.
+      const seconds = Number(value);
+      if (!Number.isFinite(seconds)) return String(value);
+      if (seconds >= 2147483647) return 'Permanente';
+      return formatCell({ v: new Date(seconds * 1000).toISOString() }, { key: 'v', label: '', format: 'date' });
+    }
+    case 'id': {
+      // "license:abc…" mostraria só o prefixo; o tipo fica implícito pela coluna.
+      const id = String(value).replace(/^[a-z0-9]+:/, '');
+      return id.length > 13 ? `${id.slice(0, 8)}…` : id;
+    }
     default:
       return String(value);
   }

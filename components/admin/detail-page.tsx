@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { uuid } from '@/lib/api/contracts';
 import { pageAccess } from '@/lib/permissions/guards';
 import { AccessUnavailable, GapState } from './states';
+import { DataList } from './module-page';
+import { adminLists } from '@/lib/admin/lists';
 import { PlayerEntitlements } from './player-entitlements';
 import { PlayerCrypto } from './player-crypto';
 import { PlayerActivity } from './player-activity';
@@ -104,16 +106,19 @@ export async function DetailPage({
           <PlayerActivity discordId={admin.discordId} playerId={id} page={page} from={from} to={to} />
         ) : kind === 'players' && active === 'Crypto' ? (
           <PlayerCrypto discordId={admin.discordId} playerId={id} page={page} />
+        ) : kind === 'players' && active === 'Allowlist' ? (
+          <DataList
+            slug="allowlist"
+            title="Allowlist deste jogador"
+            config={adminLists.allowlist}
+            actor={admin.discordId}
+            query={{ page: 1, pageSize: 20, q: id, status: '', from: '', to: '' }}
+          />
         ) : (
           <GapState
             title="Dados ainda não integrados"
             description="O identificador informado ainda não pôde ser consultado. Nenhum registro é presumido como existente."
           />
-        )}
-        {kind === 'players' && active === 'Allowlist' && (
-          <Link className="button outline" href={`/admin/allowlist?playerId=${id}`}>
-            Consultar allowlist
-          </Link>
         )}
       </div>
       {kind === 'orders' && active === 'Pedido' && <OrderStages admin />}

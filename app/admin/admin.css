@@ -295,6 +295,93 @@
   font-size: 12px;
   white-space: nowrap;
 }
+/* Pessoa do Discord numa tabela: avatar, nome e linha secundária (@usuário · ID curto). */
+.admin-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.admin-person img,
+.admin-person-initial {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex: none;
+  object-fit: cover;
+}
+.admin-person-initial {
+  display: inline-grid;
+  place-items: center;
+  background: #13263a;
+  color: var(--admin-accent);
+  font: 700 13px/1 var(--display);
+}
+.admin-person > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.admin-person strong {
+  color: #edf4fb;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-person small,
+.admin-muted {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+/* Estado como selo: cor por significado (ok, atenção, problema), sem depender só da cor no texto. */
+.admin-state {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid #2b465e;
+  background: #132a3c;
+  color: #9fd6ef;
+  white-space: nowrap;
+}
+.admin-state.state-active,
+.admin-state.state-approved,
+.admin-state.state-delivered,
+.admin-state.state-processed,
+.admin-state.state-completed,
+.admin-state.state-confirmed,
+.admin-state.state-won {
+  background: #0f2b22;
+  border-color: #1f5a44;
+  color: #8fe0bd;
+}
+.admin-state.state-pending,
+.admin-state.state-processing,
+.admin-state.state-in_process,
+.admin-state.state-review,
+.admin-state.state-open {
+  background: #2d2410;
+  border-color: #5c4a1c;
+  color: #f2d48a;
+}
+.admin-state.state-failed,
+.admin-state.state-rejected,
+.admin-state.state-revoked,
+.admin-state.state-disabled,
+.admin-state.state-lost,
+.admin-state.state-charged_back,
+.admin-state.state-cancelled {
+  background: #2e1418;
+  border-color: #6b2330;
+  color: #ffb3bd;
+}
+.admin-state.state-owner {
+  background: #10283b;
+  border-color: #2f6d93;
+  color: #8fdcff;
+}
 .admin-panel-title {
   display: flex;
   align-items: center;
@@ -804,8 +891,39 @@ dl.admin-record {
   .admin-filter label:first-child {
     min-width: 100%;
   }
-  .admin-table-wrap {
+  /* Tabelas com rótulos (data-label) viram cartões empilhados; as demais rolam na horizontal. */
+  .admin-table-wrap:has(td[data-label]) thead {
     display: none;
+  }
+  .admin-table-wrap:has(td[data-label]) table,
+  .admin-table-wrap:has(td[data-label]) tbody,
+  .admin-table-wrap:has(td[data-label]) tr {
+    display: block;
+  }
+  .admin-table-wrap:has(td[data-label]) tr {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--admin-line);
+  }
+  .admin-table-wrap:has(td[data-label]) td {
+    display: grid;
+    grid-template-columns: minmax(96px, 36%) 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+    border: 0;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .admin-table-wrap:has(td[data-label]) td > * {
+    min-width: 0;
+  }
+  .admin-table-wrap:has(td[data-label]) td > .admin-state {
+    justify-self: start;
+  }
+  .admin-table-wrap:has(td[data-label]) td::before {
+    content: attr(data-label);
+    color: var(--admin-muted);
+    font-size: 12px;
   }
   .admin-pagination {
     flex-wrap: wrap;
@@ -999,6 +1117,9 @@ dl.admin-record {
   .admin-table-wrap table {
     min-width: 650px;
   }
+  .admin-table-wrap:has(td[data-label]) table {
+    min-width: 0;
+  }
   .admin-form-grid {
     grid-template-columns: 1fr;
   }
@@ -1054,4 +1175,40 @@ dl.admin-record {
   display: grid;
   gap: 8px;
   padding-left: 18px;
+}
+.admin-capabilities {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+.admin-capabilities li {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.admin-capabilities strong {
+  margin-right: 4px;
+}
+/* Filtros com caixas de seleção (ex.: tipos de log): caixa pequena ao lado do texto. */
+.admin-filter label:has(> input[type='checkbox']) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: none;
+  font-size: 13px;
+}
+.admin-filter input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--admin-accent);
+}
+.admin-filter input {
+  min-width: 0;
 }

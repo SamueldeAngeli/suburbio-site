@@ -4,6 +4,7 @@ import { pageAccess } from '@/lib/permissions/guards';
 import { SuburbioApiClient } from '@/lib/api/client';
 import { safeError } from '@/lib/api/errors';
 import { AccessUnavailable, ErrorState } from './states';
+import { DiscordPerson } from './discord-person';
 const filters = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   q: z.string().trim().max(100).default(''),
@@ -38,7 +39,12 @@ export async function AdminList({
       <form className="admin-filter">
         <label>
           Buscar
-          <input name="q" maxLength={100} defaultValue={query.q} placeholder="AdminAccount ID ou Discord exato" />
+          <input
+            name="q"
+            maxLength={100}
+            defaultValue={query.q}
+            placeholder="ID do Discord ou da conta administrativa"
+          />
         </label>
         <label>
           Status
@@ -53,29 +59,54 @@ export async function AdminList({
       <div className="admin-panel">
         <div className="admin-panel-title">
           <h2>Equipe administrativa</h2>
-          <span>{result.total} registros</span>
+          <span className="admin-badge">
+            {result.total} {result.total === 1 ? 'administrador' : 'administradores'}
+          </span>
         </div>
         <div className="admin-table-wrap">
           <table>
             <thead>
               <tr>
-                <th>AdminAccount</th>
-                <th>Discord</th>
-                <th>Status</th>
+                <th>Administrador</th>
                 <th>Nível</th>
-                <th>Criado em</th>
+                <th>Status</th>
+                <th>Desde</th>
+                <th>
+                  <span className="sr-only">Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {result.items.map((item) => (
                 <tr key={item.adminAccountId}>
-                  <td>
-                    <Link href={`/admin/admins/${item.adminAccountId}`}>{item.adminAccountId}</Link>
+                  <td data-label="Administrador">
+                    <DiscordPerson
+                      id={item.discordId}
+                      name={item.discordName}
+                      username={item.discordUsername}
+                      avatar={item.discordAvatar}
+                    />
                   </td>
-                  <td>{item.discordId ?? 'Não vinculado'}</td>
-                  <td>{item.status === 'active' ? 'Ativo' : 'Desativado'}</td>
-                  <td>{item.isSystemOwner ? 'SYSTEM_OWNER' : 'Administrador'}</td>
-                  <td>{new Date(item.createdAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</td>
+                  <td data-label="Nível">
+                    {item.isSystemOwner ? (
+                      <span className="admin-state state-owner">Dono do sistema</span>
+                    ) : (
+                      'Administrador'
+                    )}
+                  </td>
+                  <td data-label="Status">
+                    <span className={`admin-state state-${item.status}`}>
+                      {item.status === 'active' ? 'Ativo' : 'Desativado'}
+                    </span>
+                  </td>
+                  <td data-label="Desde">
+                    {new Date(item.createdAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                  </td>
+                  <td data-label="">
+                    <Link href={`/admin/admins/${item.adminAccountId}`} title={item.adminAccountId}>
+                      Ver detalhes
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

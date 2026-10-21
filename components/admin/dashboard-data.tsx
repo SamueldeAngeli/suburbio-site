@@ -1,6 +1,6 @@
 import { SuburbioApiClient } from '@/lib/api/client';
 import { safeError } from '@/lib/api/errors';
-import { formatCell } from '@/lib/admin/lists';
+import { actionLabel, formatCell } from '@/lib/admin/lists';
 import { ErrorState } from './states';
 
 const firstPage = { page: 1, pageSize: 20, q: '', status: '', from: '', to: '' };
@@ -39,10 +39,12 @@ export async function RecentActivity({ actor }: { actor: string }) {
       <ul className="admin-activity">
         {data.items.slice(0, 8).map((a) => (
           <li key={String(a.id)}>
-            <strong>{String(a.action)}</strong>
+            <strong title={String(a.action)}>{actionLabel(String(a.action))}</strong>
             <span>
-              {String(a.targetType)} ·{' '}
-              {a.actorDiscordId ? `por ${String(a.actorDiscordId)}` : `serviço ${String(a.service)}`}
+              {actionLabel(String(a.targetType))} ·{' '}
+              {a.actorDiscordId
+                ? `por ${String(a.actorDiscordIdName ?? `Discord ${String(a.actorDiscordId).slice(0, 6)}…`)}`
+                : actionLabel(String(a.service))}
             </span>
             <time dateTime={String(a.createdAt)}>{formatCell(a, { key: 'createdAt', label: '', format: 'date' })}</time>
           </li>

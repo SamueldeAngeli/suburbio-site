@@ -5,6 +5,7 @@ import { adminModules } from '@/lib/admin/modules';
 import { AdminShell } from '@/components/admin/shell';
 import { AccessUnavailable } from '@/components/admin/states';
 import { logout } from '@/lib/auth/actions';
+import { currentSession } from '@/lib/auth/session';
 import './admin.css';
 export const metadata: Metadata = { title: 'Administração — Subúrbio RP', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
@@ -19,10 +20,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </form>
       </main>
     );
+  const session = await currentSession();
   const modules = adminModules.map((m, iconIndex) => ({ ...m, iconIndex })).filter((m) => can(admin, m.capability));
   return (
     <div className="admin-root">
-      <AdminShell modules={modules} name={admin.displayName} owner={admin.accessLevel === 'SYSTEM_OWNER'}>
+      <AdminShell
+        modules={modules}
+        name={session?.user?.name ?? admin.displayName}
+        owner={admin.accessLevel === 'SYSTEM_OWNER'}
+      >
         {admin.readOnly && (
           <div className="admin-warning" role="status">
             Modo somente leitura. Alterações estão desabilitadas.

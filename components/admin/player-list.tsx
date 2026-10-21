@@ -56,7 +56,9 @@ export async function PlayerList({
       <div className="admin-panel">
         <div className="admin-panel-title">
           <h2>Personagens da cidade</h2>
-          <span>{result.total} registros</span>
+          <span className="admin-badge">
+            {result.total} {result.total === 1 ? 'registro' : 'registros'}
+          </span>
         </div>
         <div className="admin-table-wrap">
           <table>
@@ -65,7 +67,7 @@ export async function PlayerList({
                 <th>ID</th>
                 <th>Nome</th>
                 <th>Discord</th>
-                <th>CitizenId</th>
+                <th>Citizen ID</th>
                 <th>Emprego</th>
                 <th>Organização</th>
                 <th>Em mãos / Banco</th>
@@ -78,30 +80,46 @@ export async function PlayerList({
             <tbody>
               {result.items.map((p) => (
                 <tr key={p.citizenId}>
-                  <td>
+                  <td data-label="ID">
                     <strong>{p.cityId}</strong>
                   </td>
-                  <td>
+                  <td data-label="Nome">
                     {p.playerId ? (
                       <Link href={`/admin/players/${p.playerId}`}>{p.name ?? p.accountName}</Link>
                     ) : (
                       (p.name ?? p.accountName)
                     )}
                   </td>
-                  <td>
+                  <td data-label="Discord">
                     {p.discordId
                       ? `${discordLabel(p.discordId, p.discordName)}${p.discordVerified ? '' : ' (não verificado)'}`
                       : 'Não vinculado'}
                   </td>
-                  <td>{p.citizenId}</td>
-                  <td>{role(p.job)}</td>
-                  <td>{role(p.gang)}</td>
-                  <td>{p.money ? `${brl(p.money.cash)} / ${brl(p.money.bank)}` : 'Indisponível'}</td>
+                  <td data-label="Citizen ID">{p.citizenId}</td>
+                  <td data-label="Emprego">{role(p.job)}</td>
+                  <td data-label="Organização">{role(p.gang)}</td>
+                  <td data-label="Em mãos / Banco">
+                    {p.money ? `${brl(p.money.cash)} / ${brl(p.money.bank)}` : 'Indisponível'}
+                  </td>
                   {/* ONLINE = sessão aberta + sinal recente; sem vínculo na API = desconhecido. */}
-                  <td>{p.online === null ? '—' : p.online ? 'Online' : 'Offline'}</td>
-                  <td>{p.allowlist ? allowlistLabel[p.allowlist] : 'Sem vínculo na API'}</td>
-                  <td>{p.vip === null ? '—' : p.vip ? 'Ativo' : 'Não'}</td>
-                  <td>{new Date(p.lastActivity).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</td>
+                  <td data-label="Status">
+                    {p.online === null ? (
+                      '—'
+                    ) : (
+                      <span className={`admin-state state-${p.online ? 'active' : 'disabled'}`}>
+                        {p.online ? 'Online' : 'Offline'}
+                      </span>
+                    )}
+                  </td>
+                  <td data-label="Allowlist">{p.allowlist ? allowlistLabel[p.allowlist] : 'Sem vínculo na API'}</td>
+                  <td data-label="VIP">{p.vip === null ? '—' : p.vip ? 'Ativo' : 'Não'}</td>
+                  <td data-label="Última atividade">
+                    {new Date(p.lastActivity).toLocaleString('pt-BR', {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                      timeZone: 'America/Sao_Paulo',
+                    })}
+                  </td>
                 </tr>
               ))}
             </tbody>

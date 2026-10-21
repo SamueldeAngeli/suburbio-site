@@ -7,6 +7,26 @@ import { listQuerySchema, type ListQuery } from '@/lib/api/modules/pending';
 import { SuburbioApiClient } from '@/lib/api/client';
 import { safeError } from '@/lib/api/errors';
 import { AccessUnavailable, ErrorState, GapState } from './states';
+import { DiscordPerson } from './discord-person';
+import type { Column } from '@/lib/admin/lists';
+
+type Row = Record<string, string | number | boolean | null>;
+/** Célula legível: pessoa do Discord com nome, estado como selo, demais valores formatados. */
+export function Cell({ row, column }: { row: Row; column: Column }) {
+  const value = row[column.key];
+  if (column.format === 'discord')
+    return (
+      <DiscordPerson
+        id={typeof value === 'string' ? value : null}
+        name={row[column.key + 'Name'] as string | null}
+        username={row[column.key + 'Username'] as string | null}
+        avatar={row[column.key + 'Avatar'] as string | null}
+      />
+    );
+  if (column.format === 'status' && value)
+    return <span className={`admin-state state-${String(value)}`}>{formatCell(row, column)}</span>;
+  return <>{formatCell(row, column)}</>;
+}
 
 export async function ModulePage({
   slug,
@@ -141,8 +161,12 @@ export async function DataList({
               {data.items.map((row, index) => (
                 <tr key={String(row.id ?? index)}>
                   {config.columns.map((c) => (
-                    <td key={c.key} title={c.format === 'id' && row[c.key] ? String(row[c.key]) : undefined}>
-                      {formatCell(row, c)}
+                    <td
+                      key={c.key}
+                      data-label={c.label}
+                      title={c.format === 'id' && row[c.key] ? String(row[c.key]) : undefined}
+                    >
+                      <Cell row={row} column={c} />
                     </td>
                   ))}
                 </tr>

@@ -22,7 +22,7 @@ export async function PlayerEntitlements({
   const url = (p: number) => `?${new URLSearchParams({ tab: 'Benefícios', page: String(p) })}`;
   return (
     <>
-      <h2>Entitlements / Benefícios</h2>
+      <h2>Benefícios</h2>
       <EntitlementsTable data={data} admin />
       <div className="admin-pagination">
         {page > 1 && <Link href={url(page - 1)}>← Anterior</Link>}

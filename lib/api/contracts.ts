@@ -16,6 +16,9 @@ export const adminSummarySchema = z.object({
   isSystemOwner: z.boolean(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  discordName: z.string().max(200).nullable().optional(),
+  discordUsername: z.string().max(200).nullable().optional(),
+  discordAvatar: z.string().max(80).nullable().optional(),
 });
 export const adminListSchema = z.object({
   items: z.array(adminSummarySchema).max(100),

@@ -14,7 +14,8 @@ vi.mock('next/navigation', () => ({
   },
 }));
 import { DataList, ModulePage } from '@/components/admin/module-page';
-import { adminLists, formatCell } from '@/lib/admin/lists';
+import { actionLabel, adminLists, formatCell } from '@/lib/admin/lists';
+import { capabilityGroups } from '@/lib/admin/capabilities';
 import { SiteError } from '@/lib/api/errors';
 
 const actor = '123456789012345678';
@@ -39,6 +40,18 @@ describe('formatação', () => {
       '0f3e1a2b…',
     );
     expect(formatCell({ v: null }, { key: 'v', label: '' })).toBe('—');
+  });
+  it('códigos internos viram texto: ações, nível, expiração e license', () => {
+    expect(actionLabel('allowlist.revoked')).toBe('Revogação · Allowlist');
+    expect(actionLabel('admin.owner.bootstrapped')).toBe('Definição inicial · Dono');
+    expect(actionLabel('system-bootstrap')).toBe('Instalação inicial');
+    expect(formatCell({ v: 'SYSTEM_OWNER' }, { key: 'v', label: '', format: 'level' })).toBe('Dono do sistema');
+    expect(formatCell({ v: '2147483647' }, { key: 'v', label: '', format: 'unix' })).toBe('Permanente');
+    expect(formatCell({ v: 'license:628e4c22aabbccdd' }, { key: 'v', label: '', format: 'id' })).toBe('628e4c22…');
+    expect(capabilityGroups(['PLAYERS_READ', 'PLAYERS_MANAGE', 'ADMIN_PERMISSIONS_MANAGE'])).toEqual([
+      { area: 'Jogadores', actions: ['ver', 'gerenciar'] },
+      { area: 'Permissões de admins', actions: ['gerenciar'] },
+    ]);
   });
 });
 
