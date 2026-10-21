@@ -4,6 +4,7 @@ import { pageAccess } from '@/lib/permissions/guards';
 import { can } from '@/lib/permissions/policy';
 import { AccessUnavailable, GapState, PanelSkeleton } from '@/components/admin/states';
 import { ServiceStatus } from '@/components/admin/service-status';
+import { DashboardMetrics, RecentActivity } from '@/components/admin/dashboard-data';
 export default async function Dashboard() {
   const admin = await pageAccess('DASHBOARD_READ', '/admin');
   if (!admin) return <AccessUnavailable />;
@@ -16,23 +17,9 @@ export default async function Dashboard() {
         </h1>
         <p>O essencial para cuidar da cidade, com informação de verdade.</p>
       </div>
-      <div className="admin-metrics">
-        {[
-          'Jogadores',
-          'Allowlists ativas',
-          'Pedidos hoje',
-          'Receita hoje',
-          'Pagamentos pendentes',
-          'Reembolsos',
-          'Chargebacks',
-        ].map((label) => (
-          <article key={label}>
-            <span>{label}</span>
-            <strong>—</strong>
-            <small>Dados ainda não integrados</small>
-          </article>
-        ))}
-      </div>
+      <Suspense fallback={<PanelSkeleton />}>
+        <DashboardMetrics actor={admin.discordId} />
+      </Suspense>
       <div className="admin-dashboard-grid">
         <div>
           {can(admin, 'SERVICES_READ') ? (
@@ -47,7 +34,13 @@ export default async function Dashboard() {
           <div className="admin-panel-title">
             <h2>Atividade recente</h2>
           </div>
-          <GapState description="Pedidos, pagamentos e ações administrativas aparecerão após a integração oficial." />
+          {can(admin, 'AUDIT_READ') ? (
+            <Suspense fallback={<PanelSkeleton />}>
+              <RecentActivity actor={admin.discordId} />
+            </Suspense>
+          ) : (
+            <GapState title="Atividade restrita" description="Seu acesso não inclui a auditoria administrativa." />
+          )}
         </div>
       </div>
       <div className="admin-quick-links">

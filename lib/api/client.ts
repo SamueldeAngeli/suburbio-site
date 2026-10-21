@@ -1,3 +1,4 @@
+import type { ListQuery } from './modules/pending';
 import { giftInput, recipientSchema, giftHistorySchema } from './gift-contracts';
 import {
   affiliateSchema,
@@ -118,6 +119,27 @@ export function classifyFailure(status: number, code: string): Failure {
   if (status >= 500) return 'internal_api_error';
   return 'rejected';
 }
+export const ADMIN_LIST_KINDS = [
+  'orders',
+  'payments',
+  'refunds',
+  'chargebacks',
+  'audit',
+  'punishments',
+  'permissions',
+  'discord-sync',
+  'dashboard',
+  'allowlist',
+] as const;
+export type AdminListKind = (typeof ADMIN_LIST_KINDS)[number];
+const adminListPageSchema = z.object({
+  items: z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))).max(50),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().min(0),
+  asOf: z.string(),
+});
+export type AdminListPage = z.infer<typeof adminListPageSchema>;
 export class SuburbioApiClient {
   constructor(
     private config: ServerEnv = serverEnv(),
@@ -643,6 +665,14 @@ export class SuburbioApiClient {
       throw new SiteError('INVALID_INPUT', 400);
     const query = new URLSearchParams({ actorDiscordId, page: String(page), pageSize: '25' });
     return this.request(`/internal/site/players/${playerId}/crypto?${query}`, adminCryptoSchema);
+  }
+  /** Listas somente leitura do Admin (pedidos, pagamentos, auditoria…); a API confere a capability do módulo. */
+  adminList(actorDiscordId: string, kind: AdminListKind, query: ListQuery) {
+    if (!discordIdSchema.safeParse(actorDiscordId).success || !ADMIN_LIST_KINDS.includes(kind))
+      throw new SiteError('INVALID_INPUT', 400);
+    const params = new URLSearchParams({ actorDiscordId, page: String(query.page), pageSize: '25' });
+    for (const key of ['q', 'status', 'from', 'to'] as const) if (query[key]) params.set(key, query[key]);
+    return this.request(`/internal/site/admin/lists/${kind}?${params}`, adminListPageSchema);
   }
   players(actorDiscordId: string, page = 1, q = '') {
     if (

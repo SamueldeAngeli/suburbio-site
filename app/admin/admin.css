@@ -263,6 +263,38 @@
   border-radius: 4px;
   min-width: 220px;
 }
+/* Atividade recente da visão geral (auditoria administrativa). */
+.admin-activity {
+  list-style: none;
+  margin: 0;
+  padding: 8px 22px 18px;
+  display: grid;
+  gap: 2px;
+}
+.admin-activity li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--admin-line);
+  font-size: 13px;
+}
+.admin-activity li:last-child {
+  border-bottom: 0;
+}
+.admin-activity span {
+  grid-column: 1;
+  color: var(--admin-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.admin-activity time {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: var(--admin-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
 .admin-panel-title {
   display: flex;
   align-items: center;

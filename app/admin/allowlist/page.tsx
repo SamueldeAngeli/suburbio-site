@@ -5,6 +5,9 @@ import { AllowlistService } from '@/lib/api/modules/allowlist';
 import { safeError } from '@/lib/api/errors';
 import { AccessUnavailable, ErrorState, GapState } from '@/components/admin/states';
 import { RevokeForm } from '@/components/admin/revoke-form';
+import { DataList } from '@/components/admin/module-page';
+import { adminLists } from '@/lib/admin/lists';
+import { listQuerySchema } from '@/lib/api/modules/pending';
 export default async function AllowlistPage({
   searchParams,
 }: {
@@ -12,13 +15,12 @@ export default async function AllowlistPage({
 }) {
   const admin = await pageAccess('ALLOWLIST_READ', '/admin/allowlist');
   if (!admin) return <AccessUnavailable />;
-  const { playerId } = await searchParams;
-  let content: React.ReactNode = (
-    <GapState
-      title="Consulte um jogador"
-      description="A consulta individual está preparada. A busca e a listagem geral ainda aguardam um endpoint oficial."
-    />
+  const raw = await searchParams;
+  const { playerId } = raw;
+  const listQuery = listQuerySchema.safeParse(
+    Object.fromEntries(Object.entries(raw).filter(([key]) => ['q', 'page', 'status'].includes(key))),
   );
+  let content: React.ReactNode = null;
   if (playerId) {
     if (!uuid.safeParse(playerId).success)
       content = (
@@ -85,7 +87,40 @@ export default async function AllowlistPage({
         </label>
         <button className="button small">Consultar</button>
       </form>
-      <div className="admin-panel">{content}</div>
+      {content && <div className="admin-panel">{content}</div>}
+      <form className="admin-filter" method="get">
+        <label>
+          Buscar na lista
+          <input
+            name="q"
+            maxLength={100}
+            placeholder={adminLists.allowlist.searchHint}
+            defaultValue={listQuery.success ? listQuery.data.q : ''}
+          />
+        </label>
+        <label>
+          Status
+          <input
+            name="status"
+            maxLength={40}
+            placeholder={adminLists.allowlist.statusHint}
+            defaultValue={listQuery.success ? listQuery.data.status : ''}
+          />
+        </label>
+        <input type="hidden" name="page" value="1" />
+        <button className="button small">Filtrar</button>
+      </form>
+      {listQuery.success ? (
+        <DataList
+          slug="allowlist"
+          title="Allowlists"
+          config={adminLists.allowlist}
+          actor={admin.discordId}
+          query={listQuery.data}
+        />
+      ) : (
+        <GapState title="Filtros inválidos" description="Revise a busca e a página." />
+      )}
     </>
   );
 }
