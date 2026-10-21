@@ -42,7 +42,12 @@ export default async function Order({ params }: { params: Promise<{ id: string }
         data && (
           <>
             <section className="admin-panel">
-              <h2>Pedido</h2>
+              <div className="admin-panel-title">
+                <h2>Pedido</h2>
+                <span className="admin-badge">
+                  {data.items.length} {data.items.length === 1 ? 'item' : 'itens'}
+                </span>
+              </div>
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
@@ -56,35 +61,48 @@ export default async function Order({ params }: { params: Promise<{ id: string }
                   <tbody>
                     {data.items.map((item) => (
                       <tr key={item.id}>
-                        <td>{item.name}</td>
-                        <td>
+                        <td data-label="Benefício">{item.name}</td>
+                        <td data-label="Validade adquirida">
                           {validityLabel({
                             validityMode: item.validityModeSnapshot,
                             durationDays: item.durationDaysSnapshot,
                           })}
                         </td>
-                        <td>{item.quantity}</td>
-                        <td>{money(item.amountMinor)}</td>
+                        <td data-label="Quantidade">{item.quantity}</td>
+                        <td data-label="Valor">{money(item.amountMinor)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <p>Subtotal: {money(data.grossAmountMinor)}</p>
-              <p>Desconto: {money(data.discountAmountMinor)}</p>
-              <p>
-                <strong>Total: {money(data.netAmountMinor)}</strong>
-              </p>
-              <p>
-                O pagamento confirmado não significa que os benefícios já foram entregues. A entrega depende da
-                confirmação da cidade.
-              </p>
-              {data.status === 'pending' && (
-                <>
-                  <CheckoutOrder id={id} free={Number(data.netAmountMinor) === 0} />
-                  {data.reservationStatus === 'reserved' && <CancelOrder id={id} />}
-                </>
-              )}
+              <div className="admin-panel-body order-summary">
+                <dl className="order-totals">
+                  <div>
+                    <dt>Subtotal</dt>
+                    <dd>{money(data.grossAmountMinor)}</dd>
+                  </div>
+                  {Number(data.discountAmountMinor) > 0 && (
+                    <div>
+                      <dt>Desconto</dt>
+                      <dd>− {money(data.discountAmountMinor)}</dd>
+                    </div>
+                  )}
+                  <div className="order-total">
+                    <dt>Total</dt>
+                    <dd>{money(data.netAmountMinor)}</dd>
+                  </div>
+                </dl>
+                <p className="admin-note">
+                  O pagamento confirmado não significa que os benefícios já foram entregues. A entrega depende da
+                  confirmação da cidade.
+                </p>
+                {data.status === 'pending' && (
+                  <div className="order-actions">
+                    <CheckoutOrder id={id} free={Number(data.netAmountMinor) === 0} />
+                    {data.reservationStatus === 'reserved' && <CancelOrder id={id} />}
+                  </div>
+                )}
+              </div>
             </section>
             <PurchaseStages order={data} />
           </>

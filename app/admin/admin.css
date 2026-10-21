@@ -1212,3 +1212,70 @@ dl.admin-record {
 .admin-filter input {
   min-width: 0;
 }
+/* Etapas do pedido em grade: cartões com respiro interno e alinhados (sem a margem de painel empilhado). */
+.account-grid {
+  margin-top: 20px;
+}
+.account-grid > .admin-panel,
+.citizen-content .account-grid > .admin-panel {
+  margin-top: 0;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.account-grid > .admin-panel h2 {
+  margin: 0 0 4px;
+}
+.account-grid > .admin-panel p {
+  margin: 0;
+}
+.account-grid > .admin-panel a {
+  margin-top: auto;
+  color: var(--admin-accent);
+  font-size: 13px;
+}
+/* Resumo do pedido: totais alinhados à direita e ações lado a lado. */
+.order-summary {
+  display: grid;
+  gap: 18px;
+}
+.order-totals {
+  margin: 0 0 0 auto;
+  min-width: min(100%, 280px);
+  display: grid;
+  gap: 8px;
+}
+.order-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  font-size: 13px;
+  color: #a1b5c9;
+}
+.order-totals dd {
+  margin: 0;
+}
+.order-totals .order-total {
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-line);
+  color: #e0ebf8;
+  font-weight: 600;
+  font-size: 16px;
+}
+.order-summary .admin-note {
+  margin: 0;
+}
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--admin-line);
+}
+.order-actions p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #8fa3b6;
+}
