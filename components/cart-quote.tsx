@@ -9,7 +9,16 @@ import { z } from 'zod';
 import { cartQuoteSchema } from '@/lib/api/cart-contracts';
 import { notifyUnauthorized } from '@/components/site/citizen-provider';
 type Quote = z.infer<typeof cartQuoteSchema>;
-export function CartQuote({ cart, couponCode }: { cart: Record<string, number>; couponCode: string }) {
+export function CartQuote({
+  cart,
+  couponCode,
+  onOrdered,
+}: {
+  cart: Record<string, number>;
+  couponCode: string;
+  // Pedido criado: os itens já estão reservados nele, então o carrinho é esvaziado.
+  onOrdered?: () => void;
+}) {
   const [gift, setGift] = useState<GiftSelection | null>(null);
   const [recipientMode, setRecipientMode] = useState<'self' | 'gift'>('self');
   const router = useRouter(),
@@ -79,6 +88,7 @@ export function CartQuote({ cart, couponCode }: { cart: Record<string, number>; 
       }
       if (!z.uuid().safeParse(result.data?.order?.id).success) throw Error();
       router.push('/minha-conta/pedidos/' + result.data.order.id);
+      onOrdered?.();
     } catch {
       setMessage('Conexão interrompida. Tente novamente com o mesmo carrinho.');
     } finally {

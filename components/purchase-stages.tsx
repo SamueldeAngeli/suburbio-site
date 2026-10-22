@@ -43,12 +43,18 @@ export function PurchaseStages({ order }: { order: z.infer<typeof orderDetailSch
               ? 'Entregue'
               : d.lastError === 'PLAYER_OFFLINE'
                 ? 'Aguardando sua entrada na cidade'
-                : 'Pendente'}
+                : d.lastError === 'INVENTORY_FULL'
+                  ? 'Sem espaço no inventário nem no Baú de entregas: libere espaço e a entrega tenta de novo sozinha'
+                  : 'Pendente'}
             {d.deliveredAt
               ? ' · ' + new Date(d.deliveredAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
               : ''}
           </p>
         ))}
+        {/* Itens: o bridge usa o Baú de entregas quando o jogador está fora da cidade ou sem espaço. */}
+        <p className="admin-note">
+          Itens comprados com você fora da cidade, ou que não couberem no inventário, ficam no Baú de entregas.
+        </p>
       </section>
       <section className="admin-panel">
         <h2>Benefícios</h2>

@@ -267,6 +267,15 @@ export default function Home() {
     });
     setCheckout(false);
   }
+  function clearCart() {
+    setCart({});
+    setCouponCode('');
+    setCheckout(false);
+    setPanel(null);
+    try {
+      localStorage.setItem('suburbio-cart', '{}');
+    } catch {}
+  }
   function close() {
     setPanel(null);
     setSelected(null);
@@ -803,15 +812,22 @@ export default function Home() {
                     </div>
                     {catalogMode !== 'live' && <small>Cupons estarão disponíveis em breve.</small>}
                   </div>
-                  <p className="demo-note">
-                    {catalogMode === 'live'
-                      ? 'Total estimado. Confira os valores antes de continuar.'
-                      : 'Carrinho demonstrativo. Nenhuma cobrança será realizada.'}
-                  </p>
-                  <button className="button full" onClick={() => setCheckout(true)}>
-                    Continuar <ArrowRight size={18} />
-                  </button>
-                  {checkout && catalogMode === 'live' && <CartQuote cart={cart} couponCode={couponCode} />}
+                  {/* Um só avanço por vez: aberta a conferência, o botão dela (com os valores finais) é o próximo passo. */}
+                  {!checkout && (
+                    <>
+                      <p className="demo-note">
+                        {catalogMode === 'live'
+                          ? 'Total estimado. Confira os valores antes de continuar.'
+                          : 'Carrinho demonstrativo. Nenhuma cobrança será realizada.'}
+                      </p>
+                      <button className="button full" onClick={() => setCheckout(true)}>
+                        Continuar <ArrowRight size={18} />
+                      </button>
+                    </>
+                  )}
+                  {checkout && catalogMode === 'live' && (
+                    <CartQuote cart={cart} couponCode={couponCode} onOrdered={clearCart} />
+                  )}
                   {checkout && catalogMode !== 'live' && (
                     <div className="pending" role="status">
                       <ShieldCheck size={24} />
