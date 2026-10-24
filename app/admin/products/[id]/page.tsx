@@ -1,4 +1,3 @@
-import { ProductDetails } from '@/components/admin/product-details';
 import { notFound } from 'next/navigation';
 import { pageAccess } from '@/lib/permissions/guards';
 import { can } from '@/lib/permissions/policy';
@@ -28,9 +27,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <div className="admin-title">
         <span className="admin-kicker">GESTÃO / CATÁLOGO</span>
         <h1>{isNew ? 'Novo produto' : product?.name}</h1>
-        <p>Benefícios, disponibilidade e entrega em um só cadastro.</p>
+        <p>{isNew ? 'Escolha o tipo, dê um nome, defina onde vender e o preço.' : 'Altere o que precisar e salve.'}</p>
       </div>
-      {product && <ProductDetails product={product} />}
       <ProductEditor product={product} categories={categories} canDisable={can(admin, 'PRODUCTS_DISABLE')} />
     </>
   );
